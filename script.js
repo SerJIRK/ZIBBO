@@ -1,5 +1,50 @@
 const AdController = window.Adsgram?.init({ blockId: "9a1dea9f8d134730875d57f334be6f6e" });
 
+const MusicMgr = {
+    currentTrack: null,
+    tracks: Array.from({length: 10}, (_, i) => `track${i+1}.mp3`),
+    enabled: false,
+    
+    toggle() {
+        this.enabled = !this.enabled;
+        if (this.enabled) {
+            this.playRandom();
+        } else {
+            this.stopSmoothly();
+        }
+        document.getElementById('music-btn').innerText = this.enabled ? "MUSIC ON" : "MUSIC OFF";
+    },
+
+    playRandom() {
+        if (!this.enabled) return;
+        if (this.currentTrack) this.currentTrack.pause();
+        
+        const randomFile = this.tracks[Math.floor(Math.random() * this.tracks.length)];
+        this.currentTrack = new Audio(randomFile);
+        this.currentTrack.volume = 1.0;
+        this.currentTrack.loop = true;
+        
+        // Проверка наличия файла один раз при попытке воспроизведения
+        this.currentTrack.play().catch(() => {
+            console.warn(`Track ${randomFile} not found.`);
+            this.currentTrack = null;
+        });
+    },
+
+    stopSmoothly() {
+        if (!this.currentTrack) return;
+        let fade = setInterval(() => {
+            if (this.currentTrack.volume > 0.1) {
+                this.currentTrack.volume -= 0.1;
+            } else {
+                this.currentTrack.pause();
+                this.currentTrack = null;
+                clearInterval(fade);
+            }
+        }, 50);
+    }
+};
+
 const AudioMgr = {
     sounds: {},
     init() {
@@ -30,18 +75,32 @@ const Game = {
         this.createStars();
         window.onresize = () => this.resize();
 
-        const start = (e) => { 
+        const startAction = (e) => { 
             if(this.state.screen === 'playing') this.ufo.thrust = true; 
+            // Клик для выхода из режима ожидания (замирания)
+            if(this.state.screen === 'waiting') {
+                this.state.screen = 'playing';
+            }
             if(e.type === 'touchstart') e.preventDefault();
         };
-        const end = () => this.ufo.thrust = false;
+        const endAction = () => this.ufo.thrust = false;
         
-        this.canvas.addEventListener('mousedown', start);
-        window.addEventListener('mouseup', end);
-        this.canvas.addEventListener('touchstart', start, {passive: false});
-        window.addEventListener('touchend', end);
+        this.canvas.addEventListener('mousedown', startAction);
+        window.addEventListener('mouseup', endAction);
+        this.canvas.addEventListener('touchstart', startAction, {passive: false});
+        window.addEventListener('touchend', endAction);
 
-        document.getElementById('play-btn').onclick = () => { AudioMgr.play('button_click'); this.startLevel(this.storage.data.level); };
+        document.getElementById('play-btn').onclick = () => { 
+            AudioMgr.play('button_click'); 
+            if(MusicMgr.enabled) MusicMgr.playRandom();
+            this.prepareLevel(this.storage.data.level); 
+        };
+        
+        document.getElementById('music-btn').onclick = () => {
+            AudioMgr.play('button_click');
+            MusicMgr.toggle();
+        };
+
         document.getElementById('pause-btn').onclick = () => { AudioMgr.play('button_click'); this.togglePause(); };
         document.getElementById('continue-btn').onclick = () => { AudioMgr.play('button_click'); this.togglePause(); };
         document.getElementById('shop-btn-end').onclick = () => { AudioMgr.play('button_click'); this.showScreen('shop-screen'); };
@@ -91,31 +150,33 @@ const Game = {
     showScreen(id) {
         document.querySelectorAll('.screen, .hud-layer').forEach(s => s.classList.remove('active'));
         document.getElementById(id).classList.add('active');
-        if(id === 'hud' || id === 'playing') document.getElementById('hud').classList.add('active');
+        if(id === 'hud') document.getElementById('hud').classList.add('active');
     },
 
-    startLevel(lvl) {
+    prepareLevel(lvl) {
         this.state.level = lvl;
         this.state.lives = 1 + this.storage.data.livesPlus;
         this.state.score = 0;
         this.state.timeLeft = 60;
-        this.state.screen = 'playing';
-        this.ufo.y = this.canvas.height / 2;
-        this.ufo.vy = 0;
         this.entities = [];
+        this.ufo.y = this.canvas.height / 2 - this.ufo.h / 2;
+        this.ufo.vy = 0;
+        this.state.screen = 'waiting'; // Замирание
         this.showScreen('hud');
         this.updateLivesUI();
     },
 
     togglePause() {
-        if(this.state.screen === 'playing') {
+        if(this.state.screen === 'playing' || this.state.screen === 'waiting') {
+            MusicMgr.stopSmoothly();
             this.state.screen = 'paused';
             document.getElementById('level-title').innerText = "PAUSED";
             document.getElementById('ad-placeholder').style.display = 'none';
             document.getElementById('level-btns').style.display = 'flex';
             this.showScreen('level-screen');
         } else {
-            this.state.screen = 'playing';
+            if(MusicMgr.enabled) MusicMgr.playRandom();
+            this.state.screen = 'waiting';
             this.showScreen('hud');
         }
     },
@@ -133,7 +194,6 @@ const Game = {
     },
 
     update(dt) {
-        // Параллакс звезд (движется всегда для вайба)
         this.parallaxStars.forEach(s => {
             s.x -= s.speed * (this.state.screen === 'playing' ? 2 : 0.5);
             if(s.x < 0) s.x = this.canvas.width;
@@ -141,7 +201,6 @@ const Game = {
 
         if(this.state.screen !== 'playing') return;
 
-        // Физика + Покачивание
         if(this.ufo.thrust) this.ufo.vy -= 0.6;
         this.ufo.vy += 0.3; 
         this.ufo.vy *= 0.98;
@@ -155,7 +214,6 @@ const Game = {
         document.getElementById('game-timer').innerText = Math.ceil(this.state.timeLeft);
         if(this.state.timeLeft <= 0) this.levelComplete();
 
-        // Спавн
         if(Math.random() < 0.02) this.spawn('star');
         if(Math.random() < 0.01 + (this.state.level*0.002)) this.spawn('ast');
 
@@ -163,7 +221,6 @@ const Game = {
             en.x -= (4 + this.state.level * 0.3);
             if(en.type === 'ast') en.rotation += en.rotSpeed;
 
-            // Коллизия
             let dx = (this.ufo.x + this.ufo.w/2) - en.x;
             let dy = (this.ufo.y + this.ufo.h/2) - en.y;
             let dist = Math.sqrt(dx*dx + dy*dy);
@@ -201,11 +258,14 @@ const Game = {
             this.gameOver();
         } else {
             this.state.invul = Date.now() + 2000;
-            this.ufo.vy = -6;
+            this.ufo.y = this.canvas.height / 2 - this.ufo.h / 2;
+            this.ufo.vy = 0;
+            this.state.screen = 'waiting'; // Замирание после удара, если остались жизни
         }
     },
 
     gameOver() {
+        MusicMgr.stopSmoothly();
         this.state.screen = 'gameover';
         this.storage.data.stars += this.state.score;
         this.storage.save();
@@ -214,17 +274,14 @@ const Game = {
         document.getElementById('level-stars').innerText = this.state.score;
         this.showScreen('level-screen');
 
-        // Рекламная заплатка
         const adBox = document.getElementById('ad-placeholder');
         const btnBox = document.getElementById('level-btns');
         const timerTxt = document.getElementById('ad-timer');
-        
         adBox.style.display = 'block';
         btnBox.style.display = 'none';
         
         let count = 5;
         timerTxt.innerText = count;
-        
         const itv = setInterval(() => {
             count--;
             timerTxt.innerText = count;
@@ -232,13 +289,13 @@ const Game = {
                 clearInterval(itv);
                 adBox.style.display = 'none';
                 btnBox.style.display = 'flex';
-                // Здесь будет вызов Adsgram
                 if(AdController) AdController.show().catch(()=>{});
             }
         }, 1000);
     },
 
     levelComplete() {
+        MusicMgr.stopSmoothly();
         this.state.screen = 'win';
         this.storage.data.level++;
         this.storage.data.stars += this.state.score;
@@ -249,12 +306,9 @@ const Game = {
 
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // 1. Galaxy BG
         const bg = document.getElementById('galaxy-bg');
         if(bg.complete) this.ctx.drawImage(bg, 0, 0, this.canvas.width, this.canvas.height);
 
-        // 2. Parallax Stars (Layers)
         this.parallaxStars.forEach(s => {
             this.ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
             this.ctx.beginPath();
@@ -262,18 +316,14 @@ const Game = {
             this.ctx.fill();
         });
 
-        // 3. Entities
         this.entities.forEach(en => {
             this.ctx.save();
             this.ctx.translate(en.x, en.y);
-            
             if(en.type === 'star') {
-                // Дыхание звезды
                 let pulse = Math.sin(Date.now() / 200) * 0.1 + 1;
                 this.ctx.scale(pulse, pulse);
                 this.ctx.drawImage(document.getElementById('star-img'), -en.r, -en.r, en.r*2, en.r*2);
             } else {
-                // Кручение астероида
                 this.ctx.rotate(en.rotation);
                 const img = document.getElementById(en.r > 30 ? 'ast-b-img' : 'ast-s-img');
                 this.ctx.drawImage(img, -en.r, -en.r, en.r*2, en.r*2);
@@ -281,7 +331,6 @@ const Game = {
             this.ctx.restore();
         });
 
-        // 4. UFO
         const ufoImg = document.getElementById(`ufo-${this.storage.data.current}`);
         this.ctx.save();
         this.ctx.translate(this.ufo.x + this.ufo.w/2, this.ufo.y + this.ufo.h/2);
@@ -289,6 +338,14 @@ const Game = {
         if(Date.now() < this.state.invul) this.ctx.globalAlpha = Math.sin(Date.now()/100)*0.3+0.7;
         this.ctx.drawImage(ufoImg, -this.ufo.w/2, -this.ufo.h/2, this.ufo.w, this.ufo.h);
         this.ctx.restore();
+
+        // Надпись при замирании
+        if(this.state.screen === 'waiting') {
+            this.ctx.fillStyle = "white";
+            this.ctx.font = "30px 'Fredoka One'";
+            this.ctx.textAlign = "center";
+            this.ctx.fillText("TAP TO START", this.canvas.width/2, this.canvas.height/2 + 80);
+        }
     },
 
     loop(t) {
