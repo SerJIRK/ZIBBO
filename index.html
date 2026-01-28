@@ -41,22 +41,28 @@
 
         <div id="splash-screen" class="screen active">
             <div class="total-balance">⭐ <span id="total-stars-display-main">0</span></div>
-            <img src="zibbo_logo.png" class="logo-img">
-            <div class="preview-zone">
-                <img id="splash-ufo-preview" src="ufo_ship.png" class="ufo-anim">
-            </div>
+            <img src="zibbo_logo.png" class="logo-img animated-logo">
+            
             <div class="menu-stack">
-                <button id="play-btn" class="main-btn">START GAME</button>
+                <button id="play-btn" class="main-btn">CONTINUE</button>
+                <button id="new-game-btn" class="main-btn secondary-btn">NEW GAME</button>
                 <button id="music-btn" class="main-btn">MUSIC OFF</button>
             </div>
-            <div class="studio-tag">RAZDREEV STUDIO</div>
+            <div class="studio-tag">RAZDOBREEV STUDIO</div>
+        </div>
+
+        <div id="confirm-screen" class="screen confirm-overlay">
+            <p style="color:white; font-size: 1.5rem; margin-bottom: 20px;">Are you sure?</p>
+            <div class="menu-stack">
+                <button id="confirm-yes" class="main-btn">YES</button>
+                <button id="confirm-no" class="main-btn">NO</button>
+            </div>
         </div>
 
         <div id="shop-screen" class="screen">
             <div class="total-balance">⭐ <span id="total-stars-display-shop">0</span></div>
             <h2 class="screen-title">SPACE SHOP</h2>
-            <div id="shop-content" class="shop-grid">
-                </div>
+            <div id="shop-content" class="shop-grid"></div>
             <button id="close-shop" class="main-btn back-btn">BACK</button>
         </div>
 
@@ -65,7 +71,7 @@
             
             <div id="ad-container" style="display:none; text-align:center; margin-bottom: 20px;">
                 <p style="color:var(--gold); font-size: 1.2rem; margin-bottom: 10px;">ADVERTISING... <span id="ad-timer">5</span></p>
-                <div class="ad-banner-mock" style="width: 280px; height: 160px; margin: 0 auto;">ADSGRAM VIDEO</div>
+                <div class="ad-banner-mock" style="width: 280px; height: 160px; margin: 0 auto; background: rgba(255,255,255,0.1); border-radius: 15px; display: flex; align-items: center; justify-content: center;">ADSGRAM VIDEO</div>
             </div>
 
             <div class="level-info" id="level-info-stats">
@@ -73,10 +79,10 @@
             </div>
 
             <div class="menu-stack" id="level-btns">
-                <button id="resume-btn" class="main-btn" style="display:none;">RESUME</button>
+                <button id="resume-btn" class="main-btn" style="display:none;">RETRY</button>
                 <button id="shop-btn-pause" class="main-btn shop-yellow-btn">SHOP</button>
                 <button id="continue-btn" class="main-btn">CONTINUE</button>
-                <button id="home-btn" class="text-link">MAIN MENU</button>
+                <button id="home-btn-menu" class="main-btn shop-yellow-btn">MAIN MENU</button>
             </div>
         </div>
     </div>
