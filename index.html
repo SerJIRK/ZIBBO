@@ -43,7 +43,7 @@
             <div class="total-balance">⭐ <span id="total-stars-display">0</span></div>
             <img src="zibbo_logo.png" class="logo-img">
             <div class="preview-zone">
-                <img id="splash-ufo-preview" src="ufo_ship.png">
+                <img id="splash-ufo-preview" src="ufo_ship.png" class="ufo-anim">
             </div>
             <div class="menu-stack">
                 <button id="play-btn" class="main-btn">START GAME</button>
@@ -53,23 +53,22 @@
 
         <div id="shop-screen" class="screen">
             <h2 class="screen-title">SPACE SHOP</h2>
-            <div class="shop-tabs">
-                <button class="tab-btn active" data-tab="lives">UPGRADES</button>
-                <button class="tab-btn" data-tab="ships">SHIPS</button>
-            </div>
             <div id="shop-content" class="shop-grid"></div>
             <button id="close-shop" class="back-btn">RETURN</button>
         </div>
 
         <div id="level-screen" class="screen">
             <h1 id="level-title">PAUSED</h1>
-            <div id="ad-timer-box" class="ad-box" style="display:none;">
-                <p>WAITING FOR AD... <span id="ad-seconds">5</span></p>
+            
+            <div id="ad-placeholder" style="display:none; text-align:center; margin-bottom: 20px;">
+                <p style="color:var(--gold)">ADVERTISING IN... <span id="ad-timer">5</span></p>
+                <div class="ad-banner-mock">ADSGRAM BLOCK</div>
             </div>
+
             <div class="level-info">
                 <p>COLLECTED: ⭐ <span id="level-stars">0</span></p>
             </div>
-            <div class="menu-stack" id="end-menu-btns">
+            <div class="menu-stack" id="level-btns">
                 <button id="continue-btn" class="main-btn">CONTINUE</button>
                 <button id="shop-btn-end" class="sub-btn">HANGAR</button>
                 <button id="home-btn" class="text-link">MAIN MENU</button>
