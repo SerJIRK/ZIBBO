@@ -17,7 +17,11 @@ const MusicMgr = {
 
     playRandom() {
         if (!this.enabled) return;
-        if (this.currentTrack) { this.currentTrack.pause(); this.currentTrack = null; }
+        if (this.currentTrack) {
+            this.currentTrack.volume = 1.0;
+            this.currentTrack.play().catch(() => {});
+            return;
+        }
         
         const randomFile = this.tracks[Math.floor(Math.random() * this.tracks.length)];
         this.currentTrack = new Audio(randomFile);
@@ -37,16 +41,8 @@ const MusicMgr = {
         }
     },
 
-    stopSmoothly() {
-        if (!this.currentTrack) return;
-        let fade = setInterval(() => {
-            if (this.currentTrack && this.currentTrack.volume > 0.1) {
-                this.currentTrack.volume -= 0.1;
-            } else {
-                this.stopAll();
-                clearInterval(fade);
-            }
-        }, 50);
+    dimMusic() {
+        if (this.currentTrack) this.currentTrack.volume = 0.2;
     }
 };
 
@@ -108,9 +104,9 @@ const Game = {
         document.getElementById('continue-btn').onclick = () => { AudioMgr.play('button_click'); this.togglePause(); };
         document.getElementById('resume-btn').onclick = () => { 
             AudioMgr.play('button_click'); 
-            this.prepareLevel(this.state.level); // Перезапуск уровня
+            this.prepareLevel(this.state.level); 
         };
-        document.getElementById('shop-btn-end').onclick = () => { AudioMgr.play('button_click'); this.showScreen('shop-screen'); };
+        document.getElementById('shop-btn-pause').onclick = () => { AudioMgr.play('button_click'); this.openShop(); };
         document.getElementById('close-shop').onclick = () => { AudioMgr.play('button_click'); this.showScreen('level-screen'); };
         document.getElementById('home-btn').onclick = () => location.reload();
 
@@ -121,8 +117,8 @@ const Game = {
         this.parallaxStars = [];
         for(let i=0; i<100; i++) {
             this.parallaxStars.push({
-                x: Math.random() * this.canvas.width,
-                y: Math.random() * this.canvas.height,
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
                 size: Math.random() * 2,
                 speed: 0.5 + Math.random() * 2,
                 opacity: 0.2 + Math.random() * 0.8
@@ -142,7 +138,8 @@ const Game = {
             this.sync();
         },
         sync() {
-            document.getElementById('total-stars-display').innerText = this.data.stars;
+            document.getElementById('total-stars-display-main').innerText = this.data.stars;
+            document.getElementById('total-stars-display-shop').innerText = this.data.stars;
             document.getElementById('current-lvl-display').innerText = this.data.level;
             const preview = document.getElementById('splash-ufo-preview');
             if(preview) preview.src = `ufo_ship${this.data.current>1?this.data.current:''}.png`;
@@ -178,11 +175,11 @@ const Game = {
 
     togglePause() {
         if(this.state.screen === 'playing' || this.state.screen === 'waiting') {
-            MusicMgr.stopSmoothly();
+            MusicMgr.dimMusic();
             this.state.screen = 'paused';
             document.getElementById('level-title').innerText = "PAUSED";
             document.getElementById('ad-container').style.display = 'none';
-            document.getElementById('resume-btn').style.display = 'none';
+            document.getElementById('resume-btn').style.display = 'block'; // Кнопка перезапуска уровня
             document.getElementById('continue-btn').style.display = 'block';
             document.getElementById('level-btns').style.display = 'flex';
             this.showScreen('level-screen');
@@ -191,6 +188,73 @@ const Game = {
             this.state.screen = 'waiting';
             this.showScreen('hud');
         }
+    },
+
+    openShop() {
+        const grid = document.getElementById('shop-content');
+        grid.innerHTML = '';
+        
+        // 1. Товар: Жизни
+        const lifePrice = (this.storage.data.livesPlus + 1) * 100;
+        const lifeItem = document.createElement('div');
+        lifeItem.className = 'shop-item';
+        lifeItem.innerHTML = `
+            <div class="shop-item-left">
+                <img src="ufo_ship.png" class="shop-icon">
+                <div class="shop-label">+ 1 LIVE</div>
+                <button class="shop-buy-btn" onclick="Game.buyLife(${lifePrice}, this)">${lifePrice} ⭐</button>
+            </div>
+        `;
+        grid.appendChild(lifeItem);
+
+        // 2. Товар: Корабль
+        const nextShipIdx = this.storage.data.unlocked.length + 1;
+        if(nextShipIdx <= 5) {
+            const shipPrice = nextShipIdx * 100;
+            const shipItem = document.createElement('div');
+            shipItem.className = 'shop-item';
+            shipItem.innerHTML = `
+                <div class="shop-item-right">
+                    <img src="ufo_ship${nextShipIdx}.png" class="shop-ufo-asset">
+                    <div class="shop-label">UFO CLASS ${nextShipIdx}</div>
+                    <button class="shop-buy-btn" onclick="Game.buyShip(${nextShipIdx}, ${shipPrice}, this)">${shipPrice} ⭐</button>
+                </div>
+            `;
+            grid.appendChild(shipItem);
+        }
+
+        this.showScreen('shop-screen');
+    },
+
+    buyLife(price, btn) {
+        if(this.storage.data.stars >= price) {
+            this.storage.data.stars -= price;
+            this.storage.data.livesPlus++;
+            this.storage.save();
+            AudioMgr.play('collect');
+            this.openShop();
+        } else {
+            this.failBuy(btn);
+        }
+    },
+
+    buyShip(idx, price, btn) {
+        if(this.storage.data.stars >= price) {
+            this.storage.data.stars -= price;
+            this.storage.data.unlocked.push(idx);
+            this.storage.data.current = idx;
+            this.storage.save();
+            AudioMgr.play('collect');
+            this.openShop();
+        } else {
+            this.failBuy(btn);
+        }
+    },
+
+    failBuy(btn) {
+        AudioMgr.play('hit');
+        btn.classList.add('shake');
+        setTimeout(() => btn.classList.remove('shake'), 500);
     },
 
     updateLivesUI() {
@@ -226,7 +290,6 @@ const Game = {
         document.getElementById('game-timer').innerText = Math.ceil(this.state.timeLeft);
         if(this.state.timeLeft <= 0) this.levelComplete();
 
-        // Спавн только если летим
         if(Math.random() < 0.02) this.spawn('star');
         if(Math.random() < 0.01 + (this.state.level*0.002)) this.spawn('ast');
 
@@ -278,7 +341,7 @@ const Game = {
     },
 
     gameOver() {
-        MusicMgr.stopSmoothly();
+        MusicMgr.dimMusic();
         this.state.screen = 'gameover';
         this.storage.data.stars += this.state.score;
         this.storage.save();
@@ -294,8 +357,6 @@ const Game = {
 
         adBox.style.display = 'block';
         btnBox.style.display = 'none';
-        resumeBtn.style.display = 'none';
-        continueBtn.style.display = 'none';
         
         this.showScreen('level-screen');
 
@@ -308,14 +369,15 @@ const Game = {
                 clearInterval(itv);
                 adBox.style.display = 'none';
                 btnBox.style.display = 'flex';
-                resumeBtn.style.display = 'block'; // Показываем кнопку после таймера
+                resumeBtn.style.display = 'block';
+                continueBtn.style.display = 'none';
                 if(AdController) AdController.show().catch(()=>{});
             }
         }, 1000);
     },
 
     levelComplete() {
-        MusicMgr.stopSmoothly();
+        MusicMgr.dimMusic();
         this.state.screen = 'win';
         this.storage.data.level++;
         this.storage.data.stars += this.state.score;
