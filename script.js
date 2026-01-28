@@ -1,4 +1,4 @@
-const AdController = window.Adsgram?.init({ blockId: "YOUR_ID" });
+const AdController = window.Adsgram?.init({ blockId: "9a1dea9f8d134730875d57f334be6f6e" });
 
 const AudioMgr = {
     sounds: {},
@@ -17,17 +17,17 @@ const AudioMgr = {
 
 const Game = {
     state: { screen: 'splash', score: 0, lives: 1, level: 1, timeLeft: 60, lastTime: 0, invul: 0 },
-    ufo: { x: 0, y: 0, w: 75, h: 50, vy: 0, angle: 0, thrust: false },
+    ufo: { x: 0, y: 0, w: 75, h: 50, vy: 0, thrust: false, angle: 0 },
     entities: [],
-    starsBG: [], // Для параллакса
-
+    parallaxStars: [],
+    
     init() {
         AudioMgr.init();
         this.storage.load();
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
         this.resize();
-        this.initStars();
+        this.createStars();
         window.onresize = () => this.resize();
 
         const start = (e) => { 
@@ -51,15 +51,15 @@ const Game = {
         this.loop(0);
     },
 
-    initStars() {
-        this.starsBG = [];
-        for(let i=0; i<80; i++) {
-            this.starsBG.push({
+    createStars() {
+        this.parallaxStars = [];
+        for(let i=0; i<100; i++) {
+            this.parallaxStars.push({
                 x: Math.random() * this.canvas.width,
                 y: Math.random() * this.canvas.height,
                 size: Math.random() * 2,
-                speed: 0.2 + Math.random() * 0.8,
-                layer: Math.floor(Math.random() * 3)
+                speed: 0.5 + Math.random() * 2,
+                opacity: 0.2 + Math.random() * 0.8
             });
         }
     },
@@ -67,19 +67,18 @@ const Game = {
     storage: {
         data: { stars: 0, unlocked: [1], current: 1, livesPlus: 0, level: 1 },
         load() {
-            const s = localStorage.getItem('zibbo_v4');
+            const s = localStorage.getItem('zibbo_final');
             if(s) this.data = JSON.parse(s);
             this.sync();
         },
         save() {
-            localStorage.setItem('zibbo_v4', JSON.stringify(this.data));
+            localStorage.setItem('zibbo_final', JSON.stringify(this.data));
             this.sync();
         },
         sync() {
             document.getElementById('total-stars-display').innerText = this.data.stars;
             document.getElementById('current-lvl-display').innerText = this.data.level;
-            const p = document.getElementById('splash-ufo-preview');
-            p.src = `ufo_ship${this.data.current>1?this.data.current:''}.png`;
+            document.getElementById('splash-ufo-preview').src = `ufo_ship${this.data.current>1?this.data.current:''}.png`;
         }
     },
 
@@ -96,6 +95,7 @@ const Game = {
     },
 
     startLevel(lvl) {
+        this.state.level = lvl;
         this.state.lives = 1 + this.storage.data.livesPlus;
         this.state.score = 0;
         this.state.timeLeft = 60;
@@ -111,8 +111,8 @@ const Game = {
         if(this.state.screen === 'playing') {
             this.state.screen = 'paused';
             document.getElementById('level-title').innerText = "PAUSED";
-            document.getElementById('ad-timer-box').style.display = 'none';
-            document.getElementById('end-menu-btns').style.display = 'flex';
+            document.getElementById('ad-placeholder').style.display = 'none';
+            document.getElementById('level-btns').style.display = 'flex';
             this.showScreen('level-screen');
         } else {
             this.state.screen = 'playing';
@@ -133,17 +133,17 @@ const Game = {
     },
 
     update(dt) {
-        // Параллакс звезд всегда активен для красоты
-        this.starsBG.forEach(s => {
+        // Параллакс звезд (движется всегда для вайба)
+        this.parallaxStars.forEach(s => {
             s.x -= s.speed * (this.state.screen === 'playing' ? 2 : 0.5);
             if(s.x < 0) s.x = this.canvas.width;
         });
 
         if(this.state.screen !== 'playing') return;
 
-        // Физика и Наклон (вайб)
+        // Физика + Покачивание
         if(this.ufo.thrust) this.ufo.vy -= 0.6;
-        this.ufo.vy += 0.3;
+        this.ufo.vy += 0.3; 
         this.ufo.vy *= 0.98;
         this.ufo.y += this.ufo.vy;
         this.ufo.angle = Math.max(-0.3, Math.min(0.3, this.ufo.vy * 0.05));
@@ -153,15 +153,17 @@ const Game = {
 
         this.state.timeLeft -= dt;
         document.getElementById('game-timer').innerText = Math.ceil(this.state.timeLeft);
-        if(this.state.timeLeft <= 0) this.winLevel();
+        if(this.state.timeLeft <= 0) this.levelComplete();
 
+        // Спавн
         if(Math.random() < 0.02) this.spawn('star');
-        if(Math.random() < 0.015) this.spawn('ast');
+        if(Math.random() < 0.01 + (this.state.level*0.002)) this.spawn('ast');
 
         this.entities.forEach((en, i) => {
-            en.x -= (4 + this.state.level * 0.5);
+            en.x -= (4 + this.state.level * 0.3);
             if(en.type === 'ast') en.rotation += en.rotSpeed;
-            
+
+            // Коллизия
             let dx = (this.ufo.x + this.ufo.w/2) - en.x;
             let dy = (this.ufo.y + this.ufo.h/2) - en.y;
             let dist = Math.sqrt(dx*dx + dy*dy);
@@ -185,10 +187,9 @@ const Game = {
             type,
             x: this.canvas.width + 100,
             y: Math.random() * (this.canvas.height - 100) + 50,
-            r: type === 'star' ? 15 : 20 + Math.random()*30,
-            rotation: 0,
-            rotSpeed: (Math.random() - 0.5) * 0.1,
-            pulse: 0
+            r: type === 'star' ? 15 : 20 + Math.random()*25,
+            rotation: Math.random() * Math.PI,
+            rotSpeed: (Math.random() - 0.5) * 0.1
         });
     },
 
@@ -200,7 +201,7 @@ const Game = {
             this.gameOver();
         } else {
             this.state.invul = Date.now() + 2000;
-            this.ufo.vy = -7;
+            this.ufo.vy = -6;
         }
     },
 
@@ -211,26 +212,33 @@ const Game = {
         
         document.getElementById('level-title').innerText = "CRASHED!";
         document.getElementById('level-stars').innerText = this.state.score;
-        document.getElementById('ad-timer-box').style.display = 'block';
-        document.getElementById('end-menu-btns').style.display = 'none';
         this.showScreen('level-screen');
 
-        // Таймер рекламы
-        let sec = 5;
+        // Рекламная заплатка
+        const adBox = document.getElementById('ad-placeholder');
+        const btnBox = document.getElementById('level-btns');
+        const timerTxt = document.getElementById('ad-timer');
+        
+        adBox.style.display = 'block';
+        btnBox.style.display = 'none';
+        
+        let count = 5;
+        timerTxt.innerText = count;
+        
         const itv = setInterval(() => {
-            sec--;
-            document.getElementById('ad-seconds').innerText = sec;
-            if(sec <= 0) {
+            count--;
+            timerTxt.innerText = count;
+            if(count <= 0) {
                 clearInterval(itv);
-                document.getElementById('ad-timer-box').style.display = 'none';
-                document.getElementById('end-menu-btns').style.display = 'flex';
-                document.getElementById('continue-btn').innerText = "RETRY";
-                document.getElementById('continue-btn').onclick = () => this.startLevel(this.state.level);
+                adBox.style.display = 'none';
+                btnBox.style.display = 'flex';
+                // Здесь будет вызов Adsgram
+                if(AdController) AdController.show().catch(()=>{});
             }
         }, 1000);
     },
 
-    winLevel() {
+    levelComplete() {
         this.state.screen = 'win';
         this.storage.data.level++;
         this.storage.data.stars += this.state.score;
@@ -242,31 +250,32 @@ const Game = {
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // 1. BG Galaxy
+        // 1. Galaxy BG
         const bg = document.getElementById('galaxy-bg');
         if(bg.complete) this.ctx.drawImage(bg, 0, 0, this.canvas.width, this.canvas.height);
 
-        // 2. Parallax Stars
-        this.ctx.fillStyle = "white";
-        this.starsBG.forEach(s => {
-            this.ctx.globalAlpha = 0.3 + (s.layer * 0.3);
+        // 2. Parallax Stars (Layers)
+        this.parallaxStars.forEach(s => {
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
             this.ctx.beginPath();
             this.ctx.arc(s.x, s.y, s.size, 0, Math.PI*2);
             this.ctx.fill();
         });
-        this.ctx.globalAlpha = 1.0;
 
         // 3. Entities
         this.entities.forEach(en => {
             this.ctx.save();
             this.ctx.translate(en.x, en.y);
+            
             if(en.type === 'star') {
+                // Дыхание звезды
                 let pulse = Math.sin(Date.now() / 200) * 0.1 + 1;
                 this.ctx.scale(pulse, pulse);
                 this.ctx.drawImage(document.getElementById('star-img'), -en.r, -en.r, en.r*2, en.r*2);
             } else {
+                // Кручение астероида
                 this.ctx.rotate(en.rotation);
-                const img = document.getElementById(en.r > 35 ? 'ast-b-img' : 'ast-s-img');
+                const img = document.getElementById(en.r > 30 ? 'ast-b-img' : 'ast-s-img');
                 this.ctx.drawImage(img, -en.r, -en.r, en.r*2, en.r*2);
             }
             this.ctx.restore();
@@ -277,7 +286,7 @@ const Game = {
         this.ctx.save();
         this.ctx.translate(this.ufo.x + this.ufo.w/2, this.ufo.y + this.ufo.h/2);
         this.ctx.rotate(this.ufo.angle);
-        if(Date.now() < this.state.invul) this.ctx.globalAlpha = Math.sin(Date.now()/50)*0.5 + 0.5;
+        if(Date.now() < this.state.invul) this.ctx.globalAlpha = Math.sin(Date.now()/100)*0.3+0.7;
         this.ctx.drawImage(ufoImg, -this.ufo.w/2, -this.ufo.h/2, this.ufo.w, this.ufo.h);
         this.ctx.restore();
     },
