@@ -61,15 +61,17 @@
         <div id="level-screen" class="screen">
             <h1 id="level-title">PAUSED</h1>
             
-            <div id="ad-placeholder" style="display:none; text-align:center; margin-bottom: 20px;">
-                <p style="color:var(--gold)">ADVERTISING IN... <span id="ad-timer">5</span></p>
-                <div class="ad-banner-mock">ADSGRAM BLOCK</div>
+            <div id="ad-container" style="display:none; text-align:center; margin-bottom: 20px;">
+                <p style="color:var(--gold); font-size: 1.2rem; margin-bottom: 10px;">ADVERTISING... <span id="ad-timer">5</span></p>
+                <div class="ad-banner-mock" style="width: 280px; height: 160px; margin: 0 auto;">ADSGRAM VIDEO</div>
             </div>
 
-            <div class="level-info">
+            <div class="level-info" id="level-info-stats">
                 <p>COLLECTED: ⭐ <span id="level-stars">0</span></p>
             </div>
+
             <div class="menu-stack" id="level-btns">
+                <button id="resume-btn" class="main-btn" style="display:none;">RESUME</button>
                 <button id="continue-btn" class="main-btn">CONTINUE</button>
                 <button id="shop-btn-end" class="sub-btn">HANGAR</button>
                 <button id="home-btn" class="text-link">MAIN MENU</button>
