@@ -43,11 +43,10 @@
             <div class="total-balance">⭐ <span id="total-stars-display">0</span></div>
             <img src="zibbo_logo.png" class="logo-img">
             <div class="preview-zone">
-                <img id="splash-ufo-preview" src="ufo_ship.png" class="ufo-anim">
+                <img id="splash-ufo-preview" src="ufo_ship.png">
             </div>
             <div class="menu-stack">
                 <button id="play-btn" class="main-btn">START GAME</button>
-                <button id="shop-btn-main" class="sub-btn">HANGAR</button>
             </div>
             <div class="studio-tag">RAZDREEV STUDIO</div>
         </div>
@@ -64,12 +63,15 @@
 
         <div id="level-screen" class="screen">
             <h1 id="level-title">PAUSED</h1>
+            <div id="ad-timer-box" class="ad-box" style="display:none;">
+                <p>WAITING FOR AD... <span id="ad-seconds">5</span></p>
+            </div>
             <div class="level-info">
                 <p>COLLECTED: ⭐ <span id="level-stars">0</span></p>
             </div>
-            <div class="menu-stack">
+            <div class="menu-stack" id="end-menu-btns">
                 <button id="continue-btn" class="main-btn">CONTINUE</button>
-                <button id="retry-btn-over" class="sub-btn" style="display:none;">RETRY</button>
+                <button id="shop-btn-end" class="sub-btn">HANGAR</button>
                 <button id="home-btn" class="text-link">MAIN MENU</button>
             </div>
         </div>
