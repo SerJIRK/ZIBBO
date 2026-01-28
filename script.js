@@ -1,34 +1,49 @@
 const AdController = window.Adsgram?.init({ blockId: "9a1dea9f8d134730875d57f334be6f6e" });
 
+// === SHIP PHYSICS & STATS ===
+const SHIP_STATS = {
+    1: { thrust: 0.55, damping: 0.98, name: "Starter UFO" },
+    2: { thrust: 0.65, damping: 0.97, name: "Speeder Class" }, // Точнее
+    3: { thrust: 0.75, damping: 0.96, name: "Tanker Class" }, // Еще точнее
+    4: { thrust: 0.85, damping: 0.95, name: "Neon Class" },
+    5: { thrust: 1.00, damping: 0.94, name: "Golden Class" }  // Самый резкий
+};
+
+// === MUSIC ENGINE ===
 const MusicMgr = {
     currentTrack: null,
-    tracks: ['track1.mp3', 'track2.mp3', 'track3.mp3'], // Добавь сюда свои названия
+    tracks: ['track1.mp3', 'track2.mp3', 'track3.mp3'], 
     trackIndex: 0,
     enabled: false,
     
     toggle() {
         this.enabled = !this.enabled;
         if (this.enabled) {
-            this.playTrack();
+            this.playNext();
         } else {
             this.stopAll();
         }
         document.getElementById('music-btn').innerText = this.enabled ? "MUSIC ON" : "MUSIC OFF";
     },
 
-    playTrack() {
+    playNext() {
         if (!this.enabled) return;
-        this.stopAll();
+        if (this.currentTrack) {
+            this.currentTrack.pause();
+            this.currentTrack = null;
+        }
 
-        this.currentTrack = new Audio(this.tracks[this.trackIndex]);
+        const file = this.tracks[this.trackIndex];
+        this.currentTrack = new Audio(file);
         this.currentTrack.volume = 1.0;
         
-        this.currentTrack.onended = () => {
+        // Автопереключение
+        this.currentTrack.addEventListener('ended', () => {
             this.trackIndex = (this.trackIndex + 1) % this.tracks.length;
-            this.playTrack();
-        };
+            this.playNext();
+        });
 
-        this.currentTrack.play().catch(e => console.log("Audio play blocked", e));
+        this.currentTrack.play().catch(e => console.log("Music play error:", e));
     },
 
     stopAll() {
@@ -38,36 +53,31 @@ const MusicMgr = {
         }
     },
 
-    dimMusic(isDim) {
+    setVolume(vol) {
         if (this.currentTrack && this.enabled) {
-            this.currentTrack.volume = isDim ? 0.1 : 1.0;
+            this.currentTrack.volume = vol;
         }
     }
 };
 
-const SHIP_STATS = {
-    1: { thrust: 0.6, damping: 0.98 },
-    2: { thrust: 0.75, damping: 0.96 },
-    3: { thrust: 0.85, damping: 0.94 },
-    4: { thrust: 0.95, damping: 0.92 },
-    5: { thrust: 1.1, damping: 0.90 }
-};
-
+// === SOUND EFFECTS ===
 const AudioMgr = {
     sounds: {},
     init() {
         ['button_click', 'collect', 'hit'].forEach(s => {
             this.sounds[s] = new Audio(`${s}.ogg`);
+            this.sounds[s].volume = 0.8;
         });
     },
     play(name) {
-        if (this.sounds[name] && this.enabled) {
+        if (this.sounds[name] && MusicMgr.enabled) {
             this.sounds[name].currentTime = 0;
             this.sounds[name].play().catch(() => {});
         }
     }
 };
 
+// === GAME CORE ===
 const Game = {
     state: { screen: 'splash', score: 0, lives: 1, level: 1, timeLeft: 60, lastTime: 0, invul: 0 },
     ufo: { x: 0, y: 0, w: 75, h: 50, vy: 0, thrust: false, angle: 0 },
@@ -83,6 +93,7 @@ const Game = {
         this.createStars();
         window.onresize = () => this.resize();
 
+        // Input Handlers
         const startAction = (e) => { 
             if(this.state.screen === 'playing') this.ufo.thrust = true; 
             if(this.state.screen === 'waiting') this.state.screen = 'playing';
@@ -95,36 +106,34 @@ const Game = {
         this.canvas.addEventListener('touchstart', startAction, {passive: false});
         window.addEventListener('touchend', endAction);
 
-        // Кнопки меню
+        // Buttons
         document.getElementById('play-btn').onclick = () => { 
             AudioMgr.play('button_click'); 
             this.prepareLevel(this.storage.data.level); 
         };
-
         document.getElementById('new-game-btn').onclick = () => {
+            AudioMgr.play('button_click');
             document.getElementById('confirm-screen').classList.add('active');
         };
-
         document.getElementById('confirm-yes').onclick = () => {
+            AudioMgr.play('button_click');
             this.storage.reset();
             document.getElementById('confirm-screen').classList.remove('active');
             this.prepareLevel(1);
         };
-
         document.getElementById('confirm-no').onclick = () => {
+            AudioMgr.play('button_click');
             document.getElementById('confirm-screen').classList.remove('active');
         };
-        
         document.getElementById('music-btn').onclick = () => {
-            MusicMgr.toggle();
             AudioMgr.play('button_click');
+            MusicMgr.toggle();
         };
-
-        document.getElementById('pause-btn').onclick = () => { this.togglePause(); };
-        document.getElementById('continue-btn').onclick = () => { this.togglePause(); };
-        document.getElementById('resume-btn').onclick = () => { this.prepareLevel(this.state.level); };
-        document.getElementById('shop-btn-pause').onclick = () => { this.openShop(); };
-        document.getElementById('close-shop').onclick = () => { this.showScreen('level-screen'); };
+        document.getElementById('pause-btn').onclick = () => this.togglePause();
+        document.getElementById('continue-btn').onclick = () => this.togglePause();
+        document.getElementById('resume-btn').onclick = () => this.prepareLevel(this.state.level);
+        document.getElementById('shop-btn-pause').onclick = () => this.openShop();
+        document.getElementById('close-shop').onclick = () => this.showScreen('level-screen'); // Return to pause/end screen
         document.getElementById('home-btn-menu').onclick = () => location.reload();
 
         this.loop(0);
@@ -146,12 +155,12 @@ const Game = {
     storage: {
         data: { stars: 0, unlocked: [1], current: 1, livesPlus: 0, level: 1 },
         load() {
-            const s = localStorage.getItem('zibbo_final');
+            const s = localStorage.getItem('zibbo_final_v2');
             if(s) this.data = JSON.parse(s);
             this.sync();
         },
         save() {
-            localStorage.setItem('zibbo_final', JSON.stringify(this.data));
+            localStorage.setItem('zibbo_final_v2', JSON.stringify(this.data));
             this.sync();
         },
         reset() {
@@ -179,9 +188,9 @@ const Game = {
     },
 
     prepareLevel(lvl) {
-        MusicMgr.dimMusic(false);
+        MusicMgr.setVolume(1.0);
         this.state.level = lvl;
-        // Базовая жизнь 1 + купленные + уровень корабля-1
+        // Logic: 1 Base + Purchased + (ShipLevel - 1)
         this.state.lives = 1 + this.storage.data.livesPlus + (this.storage.data.current - 1);
         this.state.score = 0;
         this.state.timeLeft = 60;
@@ -191,12 +200,13 @@ const Game = {
         this.state.screen = 'waiting'; 
         this.showScreen('hud');
         this.updateLivesUI();
-        if(MusicMgr.enabled && !MusicMgr.currentTrack) MusicMgr.playTrack();
+        if(MusicMgr.enabled && !MusicMgr.currentTrack) MusicMgr.playNext();
     },
 
     togglePause() {
+        AudioMgr.play('button_click');
         if(this.state.screen === 'playing' || this.state.screen === 'waiting') {
-            MusicMgr.dimMusic(true);
+            MusicMgr.setVolume(0.1);
             this.state.screen = 'paused';
             document.getElementById('level-title').innerText = "PAUSED";
             document.getElementById('ad-container').style.display = 'none';
@@ -205,42 +215,58 @@ const Game = {
             document.getElementById('level-btns').style.display = 'flex';
             this.showScreen('level-screen');
         } else {
-            MusicMgr.dimMusic(false);
+            MusicMgr.setVolume(1.0);
             this.state.screen = 'waiting';
             this.showScreen('hud');
         }
     },
 
     openShop() {
+        AudioMgr.play('button_click');
+        MusicMgr.setVolume(0.1);
         const grid = document.getElementById('shop-content');
         grid.innerHTML = '';
         
+        // --- 1. Life Upgrade ---
         const lifePrice = (this.storage.data.livesPlus + 1) * 100;
-        const lifeItem = document.createElement('div');
-        lifeItem.className = 'shop-item';
-        lifeItem.innerHTML = `
-            <div class="shop-item-left">
+        const lifeDiv = document.createElement('div');
+        lifeDiv.className = 'shop-item';
+        lifeDiv.innerHTML = `
+            <div class="shop-info">
                 <img src="ufo_ship.png" class="shop-icon">
-                <div class="shop-label">+ 1 PERMANENT LIFE</div>
-                <button class="shop-buy-btn" onclick="Game.buyLife(${lifePrice}, this)">${lifePrice} ⭐</button>
+                <div class="shop-desc">
+                    <span class="shop-title">+1 LIFE</span>
+                    <span class="shop-sub">Permanent Upgrade</span>
+                </div>
             </div>
+            <button class="shop-buy-btn" onclick="Game.buyLife(${lifePrice}, this)">${lifePrice} ⭐</button>
         `;
-        grid.appendChild(lifeItem);
+        grid.appendChild(lifeDiv);
 
+        // --- 2. Next Ship ---
         const nextShipIdx = this.storage.data.unlocked.length + 1;
         if(nextShipIdx <= 5) {
-            const shipPrice = nextShipIdx * 100;
-            const shipItem = document.createElement('div');
-            shipItem.className = 'shop-item';
-            shipItem.innerHTML = `
-                <div class="shop-item-right">
-                    <img src="ufo_ship${nextShipIdx}.png" class="shop-ufo-asset">
-                    <div class="shop-label">UFO CLASS ${nextShipIdx} (Fast + Extra Life)</div>
-                    <button class="shop-buy-btn" onclick="Game.buyShip(${nextShipIdx}, ${shipPrice}, this)">${shipPrice} ⭐</button>
+            const shipPrice = nextShipIdx * 100 + 100; // 200, 300, 400...
+            const shipDiv = document.createElement('div');
+            shipDiv.className = 'shop-item';
+            shipDiv.innerHTML = `
+                <div class="shop-info">
+                    <img src="ufo_ship${nextShipIdx}.png" class="shop-icon">
+                    <div class="shop-desc">
+                        <span class="shop-title">UFO CLASS ${nextShipIdx}</span>
+                        <span class="shop-sub">Better Physics</span>
+                    </div>
                 </div>
+                <button class="shop-buy-btn" onclick="Game.buyShip(${nextShipIdx}, ${shipPrice}, this)">${shipPrice} ⭐</button>
             `;
-            grid.appendChild(shipItem);
+            grid.appendChild(shipDiv);
+        } else {
+            const maxDiv = document.createElement('div');
+            maxDiv.className = 'shop-item';
+            maxDiv.innerHTML = `<div style="text-align:center; width:100%; color:#aaa;">MAX SHIPS REACHED</div>`;
+            grid.appendChild(maxDiv);
         }
+
         this.showScreen('shop-screen');
     },
 
@@ -249,7 +275,8 @@ const Game = {
             this.storage.data.stars -= price;
             this.storage.data.livesPlus++;
             this.storage.save();
-            this.openShop();
+            AudioMgr.play('collect');
+            this.openShop(); // Refresh
         } else {
             this.failBuy(btn);
         }
@@ -261,6 +288,7 @@ const Game = {
             this.storage.data.unlocked.push(idx);
             this.storage.data.current = idx;
             this.storage.save();
+            AudioMgr.play('collect');
             this.openShop();
         } else {
             this.failBuy(btn);
@@ -268,15 +296,16 @@ const Game = {
     },
 
     failBuy(btn) {
+        AudioMgr.play('hit');
         btn.classList.add('shake');
-        setTimeout(() => btn.classList.remove('shake'), 500);
+        setTimeout(() => btn.classList.remove('shake'), 300);
     },
 
     updateLivesUI() {
         const bar = document.getElementById('lives-bar');
         bar.innerHTML = '';
-        let currentMax = 1 + this.storage.data.livesPlus + (this.storage.data.current - 1);
-        for(let i=1; i<=currentMax; i++) {
+        let totalLives = 1 + this.storage.data.livesPlus + (this.storage.data.current - 1);
+        for(let i=1; i<=totalLives; i++) {
             const img = document.createElement('img');
             img.src = `ufo_ship${this.storage.data.current > 1 ? this.storage.data.current : ''}.png`;
             if(i <= this.state.lives) img.className = 'on';
@@ -285,13 +314,15 @@ const Game = {
     },
 
     update(dt) {
+        // Always scroll bg stars
         this.parallaxStars.forEach(s => {
-            s.x -= s.speed * (this.state.screen === 'playing' ? 2 : 0.5);
+            s.x -= s.speed * (this.state.screen === 'playing' ? 2.5 : 0.5);
             if(s.x < 0) s.x = this.canvas.width;
         });
 
         if(this.state.screen !== 'playing') return;
 
+        // Apply physics based on current ship
         const stats = SHIP_STATS[this.storage.data.current] || SHIP_STATS[1];
 
         if(this.ufo.thrust) this.ufo.vy -= stats.thrust;
@@ -312,6 +343,8 @@ const Game = {
 
         this.entities.forEach((en, i) => {
             en.x -= (4 + this.state.level * 0.3);
+            if(en.type === 'ast') en.rotation += en.rotSpeed;
+
             let dx = (this.ufo.x + this.ufo.w/2) - en.x;
             let dy = (this.ufo.y + this.ufo.h/2) - en.y;
             let dist = Math.sqrt(dx*dx + dy*dy);
@@ -319,6 +352,7 @@ const Game = {
             if(dist < en.r + 20 && Date.now() > this.state.invul) {
                 if(en.type === 'star') {
                     this.state.score++;
+                    AudioMgr.play('collect');
                     this.entities.splice(i, 1);
                 } else {
                     this.onHit();
@@ -342,6 +376,7 @@ const Game = {
 
     onHit() {
         this.state.lives--;
+        AudioMgr.play('hit');
         this.updateLivesUI();
         if(this.state.lives <= 0) {
             this.gameOver();
@@ -354,8 +389,9 @@ const Game = {
     },
 
     gameOver() {
-        MusicMgr.dimMusic(true);
+        MusicMgr.setVolume(0.1);
         this.state.screen = 'gameover';
+        // Save score
         this.storage.data.stars += this.state.score;
         this.storage.save();
         
@@ -370,6 +406,9 @@ const Game = {
 
         adBox.style.display = 'block';
         btnBox.style.display = 'none';
+        resumeBtn.style.display = 'none';
+        continueBtn.style.display = 'none';
+        
         this.showScreen('level-screen');
 
         let count = 5;
@@ -400,7 +439,7 @@ const Game = {
     },
 
     levelComplete() {
-        MusicMgr.dimMusic(true);
+        MusicMgr.setVolume(0.1);
         this.state.screen = 'win';
         this.storage.data.level++;
         this.storage.data.stars += this.state.score;
@@ -413,9 +452,12 @@ const Game = {
 
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 1. Draw Galaxy BG (Always)
         const bg = document.getElementById('galaxy-bg');
         if(bg.complete) this.ctx.drawImage(bg, 0, 0, this.canvas.width, this.canvas.height);
 
+        // 2. Stars
         this.parallaxStars.forEach(s => {
             this.ctx.fillStyle = `rgba(255, 255, 255, ${s.opacity})`;
             this.ctx.beginPath();
@@ -423,6 +465,7 @@ const Game = {
             this.ctx.fill();
         });
 
+        // 3. Entities
         this.entities.forEach(en => {
             this.ctx.save();
             this.ctx.translate(en.x, en.y);
@@ -438,19 +481,27 @@ const Game = {
             this.ctx.restore();
         });
 
-        const ufoImg = document.getElementById(`ufo-${this.storage.data.current}`);
-        this.ctx.save();
-        this.ctx.translate(this.ufo.x + this.ufo.w/2, this.ufo.y + this.ufo.h/2);
-        this.ctx.rotate(this.ufo.angle);
-        if(Date.now() < this.state.invul) this.ctx.globalAlpha = Math.sin(Date.now()/100)*0.3+0.7;
-        this.ctx.drawImage(ufoImg, -this.ufo.w/2, -this.ufo.h/2, this.ufo.w, this.ufo.h);
-        this.ctx.restore();
+        // 4. Player
+        // Рисуем НЛО если игра идет, ждет или на паузе (чтобы было видно фон в меню паузы)
+        if(this.state.screen === 'playing' || this.state.screen === 'waiting' || this.state.screen === 'paused') {
+            const ufoImg = document.getElementById(`ufo-${this.storage.data.current}`);
+            this.ctx.save();
+            this.ctx.translate(this.ufo.x + this.ufo.w/2, this.ufo.y + this.ufo.h/2);
+            this.ctx.rotate(this.ufo.angle);
+            if(Date.now() < this.state.invul) this.ctx.globalAlpha = 0.6;
+            this.ctx.drawImage(ufoImg, -this.ufo.w/2, -this.ufo.h/2, this.ufo.w, this.ufo.h);
+            this.ctx.restore();
+        }
 
+        // Waiting Text
         if(this.state.screen === 'waiting') {
             this.ctx.fillStyle = "white";
             this.ctx.font = "30px 'Fredoka One'";
             this.ctx.textAlign = "center";
-            this.ctx.fillText("TAP TO START", this.canvas.width/2, this.canvas.height/2 + 100);
+            this.ctx.shadowBlur = 10;
+            this.ctx.shadowColor = "black";
+            this.ctx.fillText("TAP TO START", this.canvas.width/2, this.canvas.height/2 + 80);
+            this.ctx.shadowBlur = 0;
         }
     },
 
