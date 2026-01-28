@@ -1,174 +1,105 @@
-{\rtf1\ansi\ansicpg1251\cocoartf2867
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
-\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ZIBBO: Space Journey</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://sad.adsgram.ai/js/adsgram-adbox.js"></script>
+</head>
+<body>
 
-\f0\fs24 \cf0 @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');\
-\
-:root \{\
-    --bg-deep: #0a3d62;\
-    --bg-shallow: #1a8cff;\
-    --accent-yellow: #FFD700;\
-    --ui-font: 'Fredoka One', cursive, sans-serif;\
-\}\
-\
-* \{\
-    box-sizing: border-box;\
-    -webkit-tap-highlight-color: transparent;\
-\}\
-\
-body, html \{\
-    margin: 0;\
-    padding: 0;\
-    width: 100%;\
-    height: 100%;\
-    overflow: hidden;\
-    background: #000;\
-    font-family: var(--ui-font);\
-    user-select: none;\
-    -webkit-user-select: none;\
-    touch-action: none;\
-\}\
-\
-#game-container \{\
-    position: relative;\
-    width: 100vw;\
-    height: 100vh;\
-    background-color: var(--bg-deep);\
-\}\
-\
-canvas \{\
-    display: block;\
-    width: 100%;\
-    height: 100%;\
-    position: absolute;\
-    top: 0;\
-    left: 0;\
-    z-index: 1;\
-\}\
-\
-/* \uc0\u1069 \u1082 \u1088 \u1072 \u1085 \u1099  */\
-.screen \{\
-    position: absolute;\
-    top: 0;\
-    left: 0;\
-    width: 100%;\
-    height: 100%;\
-    display: flex;\
-    flex-direction: column;\
-    justify-content: center;\
-    align-items: center;\
-    opacity: 0;\
-    visibility: hidden;\
-    transition: opacity 0.3s ease;\
-    z-index: 100;\
-\}\
-\
-.screen.active \{\
-    opacity: 1;\
-    visibility: visible;\
-    pointer-events: auto;\
-\}\
-\
-/* \uc0\u1048 \u1085 \u1090 \u1077 \u1088 \u1092 \u1077 \u1081 \u1089  */\
-#hud \{\
-    justify-content: flex-start;\
-    align-items: center;\
-    padding: env(safe-area-inset-top) 20px;\
-    pointer-events: none;\
-    z-index: 50;\
-\}\
-\
-.stats-top \{\
-    display: flex;\
-    justify-content: space-between;\
-    width: 100%;\
-    max-width: 600px;\
-    background: rgba(0, 0, 0, 0.4);\
-    padding: 10px 20px;\
-    border-radius: 20px;\
-    backdrop-filter: blur(4px);\
-    border: 1px solid rgba(255,255,255,0.1);\
-    pointer-events: none;\
-\}\
-\
-.score-container, .level-container, .timer-container \{\
-    font-size: 1.2rem;\
-    color: #fff;\
-    text-shadow: 1px 1px 0 #000;\
-\}\
-\
-/* \uc0\u1051 \u1086 \u1075 \u1086 \u1090 \u1080 \u1087  */\
-.logo-container \{\
-    margin-bottom: 30px;\
-    text-align: center;\
-    animation: float 3s ease-in-out infinite;\
-    z-index: 101;\
-    width: 100%;\
-    display: flex;\
-    justify-content: center;\
-\}\
-\
-.main-logo \{\
-    max-width: 80%;\
-    height: auto;\
-    filter: drop-shadow(0 10px 10px rgba(0,0,0,0.5));\
-\}\
-\
-.bubble-text \{\
-    font-size: 3.5rem;\
-    color: white;\
-    text-shadow: 4px 4px 0px #000;\
-    margin: 0;\
-    line-height: 1.1;\
-\}\
-\
-/* \uc0\u1050 \u1085 \u1086 \u1087 \u1082 \u1080  (\u1073 \u1099 \u1074 \u1096 \u1080 \u1077  futurama) */\
-.game-btn \{\
-    background: var(--accent-yellow);\
-    border: 4px solid #000;\
-    border-radius: 50px;\
-    padding: 15px 45px;\
-    font-family: var(--ui-font);\
-    font-size: 1.8rem;\
-    color: #000;\
-    cursor: pointer;\
-    box-shadow: 0 6px 0 #b39200;\
-    transition: transform 0.1s, box-shadow 0.1s;\
-    pointer-events: auto;\
-    text-transform: uppercase;\
-\}\
-\
-.game-btn:active \{\
-    transform: translateY(4px);\
-    box-shadow: 0 2px 0 #b39200;\
-\}\
-\
-/* \uc0\u1060 \u1086 \u1085  \u1074 \u1086 \u1076 \u1099  \u1085 \u1072  \u1089 \u1087 \u1083 \u1077 \u1096 \u1077  */\
-.water-bg \{\
-    position: absolute;\
-    bottom: 0;\
-    width: 100%;\
-    height: 35%;\
-    background: linear-gradient(to top, rgba(26, 140, 255, 0.6), transparent);\
-    box-shadow: 0 -20px 50px rgba(26, 140, 255, 0.3);\
-    animation: wave 4s ease-in-out infinite;\
-    z-index: -1;\
-\}\
-\
-@keyframes wave \{\
-    0%, 100% \{ height: 35%; transform: scaleY(1); \}\
-    50% \{ height: 40%; transform: scaleY(1.1); \}\
-\}\
-\
-@keyframes float \{\
-    0%, 100% \{ transform: translateY(0); \}\
-    50% \{ transform: translateY(-15px); \}\
-\}\
-\
-@media (max-width: 768px) \{\
-    .bubble-text \{ font-size: 2.5rem; \}\
-    .game-btn \{ font-size: 1.5rem; padding: 12px 35px; \}\
-\}}
+    <div style="display:none;">
+        <img id="ufo-1" src="ufo_ship.png" alt="UFO 1">
+        <img id="ufo-2" src="ufo_ship2.png" alt="UFO 2">
+        <img id="ufo-3" src="ufo_ship3.png" alt="UFO 3">
+        <img id="ufo-4" src="ufo_ship4.png" alt="UFO 4">
+        <img id="ufo-5" src="ufo_ship5.png" alt="UFO 5">
+        
+        <img id="zibbo-logo" src="zibbo_logo.png" alt="ZIBBO Logo">
+        <img id="galaxy-bg" src="galaxy_bg.png" alt="Galaxy Background">
+        <img id="star-img" src="star_pickup.png" alt="Star">
+        <img id="ast-s-img" src="asteroid_small.png" alt="Asteroid S">
+        <img id="ast-b-img" src="asteroid_big.png" alt="Asteroid B">
+    </div>
+
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <button id="pause-btn" class="ui-btn-icon">II</button>
+
+        <div id="splash-screen" class="screen active">
+            <div class="top-bar-splash">
+                <span>⭐ <span id="total-stars-display">0</span></span>
+            </div>
+            
+            <div class="logo-area">
+                <img src="zibbo_logo.png" class="main-logo-img">
+            </div>
+
+            <div class="hero-area">
+                <div class="pendulum-ufo">
+                    <img id="splash-ufo-preview" src="ufo_ship.png">
+                </div>
+            </div>
+
+            <div class="menu-buttons">
+                <button id="play-btn" class="game-btn big-btn">PLAY</button>
+                <button id="shop-btn-main" class="game-btn small-btn">SHOP</button>
+            </div>
+
+            <div class="footer-studio">
+                RAZDREEV STUDIO
+            </div>
+        </div>
+
+        <div id="hud" class="screen">
+            <div class="stats-top">
+                <div class="score-container">⭐ <span id="game-score">0</span></div>
+                <div class="timer-container">⏱️ <span id="game-timer">60</span></div>
+                <div class="lives-container">❤️ <span id="lives-display">1</span></div>
+            </div>
+        </div>
+
+        <div id="shop-screen" class="screen">
+            <h2>SHOP</h2>
+            <div class="shop-balance">Balance: ⭐ <span id="shop-balance">0</span></div>
+            
+            <div class="shop-tabs">
+                <button class="tab-btn active" data-tab="lives">LIVES</button>
+                <button class="tab-btn" data-tab="ships">SHIPS</button>
+            </div>
+
+            <div id="shop-content" class="shop-grid">
+                </div>
+
+            <button id="close-shop" class="game-btn back-btn">BACK</button>
+        </div>
+
+        <div id="level-screen" class="screen">
+            <h2 id="level-title">STAGE 1 DONE</h2>
+            <div class="level-stats">
+                <p>Collected: ⭐ <span id="level-stars">0</span></p>
+            </div>
+            <div class="btn-group-col">
+                <button id="continue-btn" class="game-btn">CONTINUE</button>
+                <button id="shop-btn-level" class="game-btn small-btn">SHOP</button>
+            </div>
+        </div>
+
+        <div id="game-over-screen" class="screen">
+            <div class="ad-placeholder">
+                <p>ADVERTISEMENT</p>
+            </div>
+            <h2 class="crash-title">CRASHED!</h2>
+            <p class="final-score-text">Score: <span id="final-score">0</span></p>
+            
+            <button id="retry-btn" class="game-btn" disabled>Wait 5s...</button>
+            <button id="home-btn" class="text-btn">Main Menu</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
