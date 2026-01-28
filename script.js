@@ -2,36 +2,33 @@ const AdController = window.Adsgram?.init({ blockId: "9a1dea9f8d134730875d57f334
 
 const MusicMgr = {
     currentTrack: null,
-    tracks: Array.from({length: 10}, (_, i) => `track${i+1}.mp3`),
+    tracks: ['track1.mp3', 'track2.mp3', 'track3.mp3'], // Добавь сюда свои названия
+    trackIndex: 0,
     enabled: false,
     
     toggle() {
         this.enabled = !this.enabled;
         if (this.enabled) {
-            this.playRandom();
+            this.playTrack();
         } else {
             this.stopAll();
         }
         document.getElementById('music-btn').innerText = this.enabled ? "MUSIC ON" : "MUSIC OFF";
     },
 
-    playRandom() {
+    playTrack() {
         if (!this.enabled) return;
-        if (this.currentTrack) {
-            this.currentTrack.volume = 1.0;
-            this.currentTrack.play().catch(() => {});
-            return;
-        }
-        
-        const randomFile = this.tracks[Math.floor(Math.random() * this.tracks.length)];
-        this.currentTrack = new Audio(randomFile);
+        this.stopAll();
+
+        this.currentTrack = new Audio(this.tracks[this.trackIndex]);
         this.currentTrack.volume = 1.0;
-        this.currentTrack.loop = true;
         
-        this.currentTrack.play().catch(() => {
-            console.warn(`Track ${randomFile} not found.`);
-            this.currentTrack = null;
-        });
+        this.currentTrack.onended = () => {
+            this.trackIndex = (this.trackIndex + 1) % this.tracks.length;
+            this.playTrack();
+        };
+
+        this.currentTrack.play().catch(e => console.log("Audio play blocked", e));
     },
 
     stopAll() {
@@ -41,9 +38,19 @@ const MusicMgr = {
         }
     },
 
-    dimMusic() {
-        if (this.currentTrack) this.currentTrack.volume = 0.2;
+    dimMusic(isDim) {
+        if (this.currentTrack && this.enabled) {
+            this.currentTrack.volume = isDim ? 0.1 : 1.0;
+        }
     }
+};
+
+const SHIP_STATS = {
+    1: { thrust: 0.6, damping: 0.98 },
+    2: { thrust: 0.75, damping: 0.96 },
+    3: { thrust: 0.85, damping: 0.94 },
+    4: { thrust: 0.95, damping: 0.92 },
+    5: { thrust: 1.1, damping: 0.90 }
 };
 
 const AudioMgr = {
@@ -54,7 +61,7 @@ const AudioMgr = {
         });
     },
     play(name) {
-        if (this.sounds[name] && MusicMgr.enabled) {
+        if (this.sounds[name] && this.enabled) {
             this.sounds[name].currentTime = 0;
             this.sounds[name].play().catch(() => {});
         }
@@ -78,9 +85,7 @@ const Game = {
 
         const startAction = (e) => { 
             if(this.state.screen === 'playing') this.ufo.thrust = true; 
-            if(this.state.screen === 'waiting') {
-                this.state.screen = 'playing';
-            }
+            if(this.state.screen === 'waiting') this.state.screen = 'playing';
             if(e.type === 'touchstart') e.preventDefault();
         };
         const endAction = () => this.ufo.thrust = false;
@@ -90,9 +95,24 @@ const Game = {
         this.canvas.addEventListener('touchstart', startAction, {passive: false});
         window.addEventListener('touchend', endAction);
 
+        // Кнопки меню
         document.getElementById('play-btn').onclick = () => { 
             AudioMgr.play('button_click'); 
             this.prepareLevel(this.storage.data.level); 
+        };
+
+        document.getElementById('new-game-btn').onclick = () => {
+            document.getElementById('confirm-screen').classList.add('active');
+        };
+
+        document.getElementById('confirm-yes').onclick = () => {
+            this.storage.reset();
+            document.getElementById('confirm-screen').classList.remove('active');
+            this.prepareLevel(1);
+        };
+
+        document.getElementById('confirm-no').onclick = () => {
+            document.getElementById('confirm-screen').classList.remove('active');
         };
         
         document.getElementById('music-btn').onclick = () => {
@@ -100,15 +120,12 @@ const Game = {
             AudioMgr.play('button_click');
         };
 
-        document.getElementById('pause-btn').onclick = () => { AudioMgr.play('button_click'); this.togglePause(); };
-        document.getElementById('continue-btn').onclick = () => { AudioMgr.play('button_click'); this.togglePause(); };
-        document.getElementById('resume-btn').onclick = () => { 
-            AudioMgr.play('button_click'); 
-            this.prepareLevel(this.state.level); 
-        };
-        document.getElementById('shop-btn-pause').onclick = () => { AudioMgr.play('button_click'); this.openShop(); };
-        document.getElementById('close-shop').onclick = () => { AudioMgr.play('button_click'); this.showScreen('level-screen'); };
-        document.getElementById('home-btn').onclick = () => location.reload();
+        document.getElementById('pause-btn').onclick = () => { this.togglePause(); };
+        document.getElementById('continue-btn').onclick = () => { this.togglePause(); };
+        document.getElementById('resume-btn').onclick = () => { this.prepareLevel(this.state.level); };
+        document.getElementById('shop-btn-pause').onclick = () => { this.openShop(); };
+        document.getElementById('close-shop').onclick = () => { this.showScreen('level-screen'); };
+        document.getElementById('home-btn-menu').onclick = () => location.reload();
 
         this.loop(0);
     },
@@ -137,12 +154,14 @@ const Game = {
             localStorage.setItem('zibbo_final', JSON.stringify(this.data));
             this.sync();
         },
+        reset() {
+            this.data = { stars: 0, unlocked: [1], current: 1, livesPlus: 0, level: 1 };
+            this.save();
+        },
         sync() {
             document.getElementById('total-stars-display-main').innerText = this.data.stars;
             document.getElementById('total-stars-display-shop').innerText = this.data.stars;
             document.getElementById('current-lvl-display').innerText = this.data.level;
-            const preview = document.getElementById('splash-ufo-preview');
-            if(preview) preview.src = `ufo_ship${this.data.current>1?this.data.current:''}.png`;
         }
     },
 
@@ -156,12 +175,14 @@ const Game = {
         document.querySelectorAll('.screen, .hud-layer').forEach(s => s.classList.remove('active'));
         const screen = document.getElementById(id);
         if(screen) screen.classList.add('active');
-        if(id === 'hud') document.getElementById('hud').classList.add('active');
+        if(id === 'hud' || id === 'playing' || id === 'waiting') document.getElementById('hud').classList.add('active');
     },
 
     prepareLevel(lvl) {
+        MusicMgr.dimMusic(false);
         this.state.level = lvl;
-        this.state.lives = 1 + this.storage.data.livesPlus;
+        // Базовая жизнь 1 + купленные + уровень корабля-1
+        this.state.lives = 1 + this.storage.data.livesPlus + (this.storage.data.current - 1);
         this.state.score = 0;
         this.state.timeLeft = 60;
         this.entities = [];
@@ -170,21 +191,21 @@ const Game = {
         this.state.screen = 'waiting'; 
         this.showScreen('hud');
         this.updateLivesUI();
-        if(MusicMgr.enabled) MusicMgr.playRandom();
+        if(MusicMgr.enabled && !MusicMgr.currentTrack) MusicMgr.playTrack();
     },
 
     togglePause() {
         if(this.state.screen === 'playing' || this.state.screen === 'waiting') {
-            MusicMgr.dimMusic();
+            MusicMgr.dimMusic(true);
             this.state.screen = 'paused';
             document.getElementById('level-title').innerText = "PAUSED";
             document.getElementById('ad-container').style.display = 'none';
-            document.getElementById('resume-btn').style.display = 'block'; // Кнопка перезапуска уровня
-            document.getElementById('continue-btn').style.display = 'block';
+            document.getElementById('resume-btn').style.display = 'block';
+            document.getElementById('continue-btn').style.display = 'none';
             document.getElementById('level-btns').style.display = 'flex';
             this.showScreen('level-screen');
         } else {
-            if(MusicMgr.enabled) MusicMgr.playRandom();
+            MusicMgr.dimMusic(false);
             this.state.screen = 'waiting';
             this.showScreen('hud');
         }
@@ -194,20 +215,18 @@ const Game = {
         const grid = document.getElementById('shop-content');
         grid.innerHTML = '';
         
-        // 1. Товар: Жизни
         const lifePrice = (this.storage.data.livesPlus + 1) * 100;
         const lifeItem = document.createElement('div');
         lifeItem.className = 'shop-item';
         lifeItem.innerHTML = `
             <div class="shop-item-left">
                 <img src="ufo_ship.png" class="shop-icon">
-                <div class="shop-label">+ 1 LIVE</div>
+                <div class="shop-label">+ 1 PERMANENT LIFE</div>
                 <button class="shop-buy-btn" onclick="Game.buyLife(${lifePrice}, this)">${lifePrice} ⭐</button>
             </div>
         `;
         grid.appendChild(lifeItem);
 
-        // 2. Товар: Корабль
         const nextShipIdx = this.storage.data.unlocked.length + 1;
         if(nextShipIdx <= 5) {
             const shipPrice = nextShipIdx * 100;
@@ -216,13 +235,12 @@ const Game = {
             shipItem.innerHTML = `
                 <div class="shop-item-right">
                     <img src="ufo_ship${nextShipIdx}.png" class="shop-ufo-asset">
-                    <div class="shop-label">UFO CLASS ${nextShipIdx}</div>
+                    <div class="shop-label">UFO CLASS ${nextShipIdx} (Fast + Extra Life)</div>
                     <button class="shop-buy-btn" onclick="Game.buyShip(${nextShipIdx}, ${shipPrice}, this)">${shipPrice} ⭐</button>
                 </div>
             `;
             grid.appendChild(shipItem);
         }
-
         this.showScreen('shop-screen');
     },
 
@@ -231,7 +249,6 @@ const Game = {
             this.storage.data.stars -= price;
             this.storage.data.livesPlus++;
             this.storage.save();
-            AudioMgr.play('collect');
             this.openShop();
         } else {
             this.failBuy(btn);
@@ -244,7 +261,6 @@ const Game = {
             this.storage.data.unlocked.push(idx);
             this.storage.data.current = idx;
             this.storage.save();
-            AudioMgr.play('collect');
             this.openShop();
         } else {
             this.failBuy(btn);
@@ -252,7 +268,6 @@ const Game = {
     },
 
     failBuy(btn) {
-        AudioMgr.play('hit');
         btn.classList.add('shake');
         setTimeout(() => btn.classList.remove('shake'), 500);
     },
@@ -260,10 +275,10 @@ const Game = {
     updateLivesUI() {
         const bar = document.getElementById('lives-bar');
         bar.innerHTML = '';
-        let max = 1 + this.storage.data.livesPlus;
-        for(let i=1; i<=max; i++) {
+        let currentMax = 1 + this.storage.data.livesPlus + (this.storage.data.current - 1);
+        for(let i=1; i<=currentMax; i++) {
             const img = document.createElement('img');
-            img.src = `ufo_ship${this.storage.data.current>1?this.storage.data.current:''}.png`;
+            img.src = `ufo_ship${this.storage.data.current > 1 ? this.storage.data.current : ''}.png`;
             if(i <= this.state.lives) img.className = 'on';
             bar.appendChild(img);
         }
@@ -277,9 +292,11 @@ const Game = {
 
         if(this.state.screen !== 'playing') return;
 
-        if(this.ufo.thrust) this.ufo.vy -= 0.6;
-        this.ufo.vy += 0.3; 
-        this.ufo.vy *= 0.98;
+        const stats = SHIP_STATS[this.storage.data.current] || SHIP_STATS[1];
+
+        if(this.ufo.thrust) this.ufo.vy -= stats.thrust;
+        this.ufo.vy += 0.35; 
+        this.ufo.vy *= stats.damping;
         this.ufo.y += this.ufo.vy;
         this.ufo.angle = Math.max(-0.3, Math.min(0.3, this.ufo.vy * 0.05));
 
@@ -295,15 +312,12 @@ const Game = {
 
         this.entities.forEach((en, i) => {
             en.x -= (4 + this.state.level * 0.3);
-            if(en.type === 'ast') en.rotation += en.rotSpeed;
-
             let dx = (this.ufo.x + this.ufo.w/2) - en.x;
             let dy = (this.ufo.y + this.ufo.h/2) - en.y;
             let dist = Math.sqrt(dx*dx + dy*dy);
             
             if(dist < en.r + 20 && Date.now() > this.state.invul) {
                 if(en.type === 'star') {
-                    AudioMgr.play('collect');
                     this.state.score++;
                     this.entities.splice(i, 1);
                 } else {
@@ -327,7 +341,6 @@ const Game = {
     },
 
     onHit() {
-        AudioMgr.play('hit');
         this.state.lives--;
         this.updateLivesUI();
         if(this.state.lives <= 0) {
@@ -341,7 +354,7 @@ const Game = {
     },
 
     gameOver() {
-        MusicMgr.dimMusic();
+        MusicMgr.dimMusic(true);
         this.state.screen = 'gameover';
         this.storage.data.stars += this.state.score;
         this.storage.save();
@@ -357,7 +370,6 @@ const Game = {
 
         adBox.style.display = 'block';
         btnBox.style.display = 'none';
-        
         this.showScreen('level-screen');
 
         let count = 5;
@@ -367,17 +379,28 @@ const Game = {
             timerTxt.innerText = count;
             if(count <= 0) {
                 clearInterval(itv);
-                adBox.style.display = 'none';
-                btnBox.style.display = 'flex';
-                resumeBtn.style.display = 'block';
-                continueBtn.style.display = 'none';
-                if(AdController) AdController.show().catch(()=>{});
+                if(AdController) {
+                    AdController.show().then(() => {
+                        this.finalizeGameOver(adBox, btnBox, resumeBtn, continueBtn);
+                    }).catch(() => {
+                        this.finalizeGameOver(adBox, btnBox, resumeBtn, continueBtn);
+                    });
+                } else {
+                    this.finalizeGameOver(adBox, btnBox, resumeBtn, continueBtn);
+                }
             }
         }, 1000);
     },
 
+    finalizeGameOver(adBox, btnBox, resumeBtn, continueBtn) {
+        adBox.style.display = 'none';
+        btnBox.style.display = 'flex';
+        resumeBtn.style.display = 'block';
+        continueBtn.style.display = 'none';
+    },
+
     levelComplete() {
-        MusicMgr.dimMusic();
+        MusicMgr.dimMusic(true);
         this.state.screen = 'win';
         this.storage.data.level++;
         this.storage.data.stars += this.state.score;
