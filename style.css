@@ -1,19 +1,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
 
 :root {
-    --bg-space: #050508;
-    --accent-neon: #00f2ff;
-    --accent-yellow: #FFD700;
-    --glass: rgba(255, 255, 255, 0.1);
-    --ui-font: 'Fredoka One', cursive, sans-serif;
+    --neon: #00f2ff;
+    --gold: #FFD700;
+    --glass-bg: rgba(255, 255, 255, 0.08);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --font: 'Fredoka One', cursive;
 }
-
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
 
 body, html {
     margin: 0; padding: 0; width: 100%; height: 100%;
-    overflow: hidden; background: var(--bg-space);
-    font-family: var(--ui-font); user-select: none; touch-action: none;
+    background: #050508; font-family: var(--font);
+    overflow: hidden; touch-action: none; user-select: none;
 }
 
 #game-container { position: relative; width: 100vw; height: 100vh; }
@@ -21,74 +19,57 @@ canvas { display: block; width: 100%; height: 100%; }
 
 /* Glass HUD */
 .hud-layer {
-    position: absolute; top: 0; left: 0; width: 100%;
-    padding: 15px; z-index: 50; pointer-events: none;
-    display: none;
+    position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+    width: 92%; z-index: 50; pointer-events: none; display: none;
 }
 .hud-layer.active { display: block; }
 
-.hud-glass-card {
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px; padding: 10px 15px;
-    display: flex; flex-direction: column; gap: 8px;
+.glass-hud {
+    background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border); border-radius: 20px;
+    padding: 12px 18px; display: flex; flex-direction: column; gap: 8px;
 }
 
-.hud-row { display: flex; align-items: center; width: 100%; }
-.hud-item { color: #fff; font-size: 1.2rem; text-shadow: 0 0 10px var(--accent-neon); }
-.ml-auto { margin-left: auto; }
+.hud-line { display: flex; align-items: center; justify-content: space-between; }
+.hud-score { color: var(--gold); font-size: 1.4rem; }
+.hud-level { color: white; opacity: 0.8; font-size: 0.9rem; }
 
-.pause-trigger {
-    background: var(--accent-neon); border: none; border-radius: 8px;
-    width: 35px; height: 35px; font-family: var(--ui-font);
-    font-size: 1rem; color: #000; cursor: pointer; pointer-events: all;
-    margin-right: 15px;
+.glass-btn-square {
+    pointer-events: all; background: var(--glass-bg); border: 1px solid var(--glass-border);
+    color: white; border-radius: 12px; width: 44px; height: 44px; font-family: var(--font);
 }
 
-.lives-bar { display: flex; gap: 4px; }
-.lives-bar img { height: 18px; filter: drop-shadow(0 0 5px var(--accent-neon)); }
-.hud-timer { margin-left: auto; color: #fff; font-size: 1rem; opacity: 0.8; }
+.lives-container { display: flex; gap: 4px; }
+.lives-container img { height: 16px; opacity: 0.2; }
+.lives-container img.on { opacity: 1; filter: drop-shadow(0 0 5px var(--neon)); }
 
 /* Screens */
 .screen {
-    position: absolute; inset: 0; background: rgba(0,0,0,0.85);
-    display: flex; flex-direction: column; justify-content: center; align-items: center;
-    opacity: 0; visibility: hidden; transition: 0.3s; z-index: 100;
-    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    position: absolute; inset: 0; z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(5, 5, 8, 0.9); backdrop-filter: blur(15px);
+    opacity: 0; visibility: hidden; transition: 0.4s;
 }
 .screen.active { opacity: 1; visibility: visible; }
 #splash-screen { background: transparent; backdrop-filter: none; }
 
-/* Buttons */
-.game-btn {
-    background: var(--accent-yellow); border: 3px solid #000; border-radius: 15px;
-    padding: 15px 40px; font-family: var(--ui-font); font-size: 1.4rem;
-    box-shadow: 0 6px 0 #b39200; transition: 0.1s; text-transform: uppercase; margin: 10px;
+/* Кнопки */
+.main-btn {
+    background: var(--gold); color: #000; border: none; border-radius: 25px;
+    padding: 18px 50px; font-family: var(--font); font-size: 1.4rem;
+    box-shadow: 0 6px 0 #b39200; cursor: pointer; margin: 10px;
 }
-.game-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #b39200; }
-.small-btn { font-size: 1rem; padding: 8px 25px; }
+.sub-btn {
+    background: var(--glass-bg); color: white; border: 1px solid var(--glass-border);
+    border-radius: 20px; padding: 12px 35px; font-family: var(--font); margin: 5px;
+}
+.text-link { background: none; border: none; color: rgba(255,255,255,0.4); margin-top: 20px; font-family: var(--font); }
 
-/* Shop Grid */
-.shop-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-    width: 90%; max-height: 50vh; overflow-y: auto; padding: 10px;
-}
-.shop-item {
-    background: var(--glass); border-radius: 15px; padding: 15px;
-    text-align: center; color: #fff; border: 1px solid rgba(255,255,255,0.1);
-}
-.shop-item img { height: 40px; margin-bottom: 5px; }
-.buy-btn {
-    background: var(--accent-yellow); border: none; border-radius: 8px;
-    width: 100%; padding: 8px; font-family: var(--ui-font); margin-top: 8px;
-}
-.buy-btn.equip { background: var(--accent-neon); }
+/* Адаптивный Лого */
+.logo-img { max-width: 80%; height: auto; filter: drop-shadow(0 0 15px var(--neon)); margin-bottom: 20px; }
+.total-balance { position: absolute; top: 25px; right: 25px; font-size: 1.3rem; color: var(--gold); }
 
-.tab-btn {
-    background: none; border: 1px solid #fff; color: #fff;
-    padding: 5px 20px; border-radius: 20px; font-family: var(--ui-font); margin: 0 5px;
-}
-.tab-btn.active { background: #fff; color: #000; }
-
-.neon-text { color: var(--accent-neon); text-shadow: 0 0 10px var(--accent-neon); }
+/* Магазин */
+.shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 85%; max-height: 45vh; overflow-y: auto; padding: 10px; }
+.shop-item { background: var(--glass-bg); padding: 15px; border-radius: 18px; text-align: center; border: 1px solid var(--glass-border); }
+.shop-item img { height: 45px; margin-bottom: 10px; }
