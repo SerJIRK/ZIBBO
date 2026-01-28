@@ -1,4 +1,4 @@
-const AdController = window.Adsgram?.init({ blockId: "9a1dea9f8d134730875d57f334be6f6e" });
+const AdController = window.Adsgram?.init({ blockId: "e914e8d463c140da947118bcb514bd9a" });
 
 // === SHIP PHYSICS & STATS ===
 const SHIP_STATS = {
