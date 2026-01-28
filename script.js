@@ -1,269 +1,478 @@
-{\rtf1\ansi\ansicpg1251\cocoartf2867
-\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
-{\colortbl;\red255\green255\blue255;}
-{\*\expandedcolortbl;;}
-\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
-\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+/**
+ * ZIBBO: Space Journey - Core Engine
+ * Architecture: Modular (Storage, Audio, Shop, Game)
+ */
 
-\f0\fs24 \cf0 // --- \uc0\u1048 \u1085 \u1080 \u1094 \u1080 \u1072 \u1083 \u1080 \u1079 \u1072 \u1094 \u1080 \u1103  Telegram ---\
-const tg = window.Telegram?.WebApp;\
-if (tg) \{\
-    tg.expand();\
-    tg.ready();\
-\}\
-\
-// --- \uc0\u1056 \u1077 \u1082 \u1083 \u1072 \u1084 \u1072  AdsGram ---\
-const ADS_BLOCK_ID = "9a1dea9f8d134730875d57f334be6f6e"; \
-const AdController = window.Adsgram?.init(\{ blockId: ADS_BLOCK_ID \});\
-\
-const canvas = document.getElementById('gameCanvas');\
-const ctx = canvas.getContext('2d');\
-\
-// \uc0\u1040 \u1089 \u1089 \u1077 \u1090 \u1099  (\u1086 \u1073 \u1085 \u1086 \u1074 \u1083 \u1077 \u1085 \u1085 \u1099 \u1077  \u1087 \u1086 \u1076  UFO)\
-const assets = \{\
-    ufo: document.getElementById('ufo-img'),\
-    star: document.getElementById('star-img'),\
-    astS: document.getElementById('ast-s-img'),\
-    astB: document.getElementById('ast-b-img')\
-\};\
-\
-// \uc0\u1053 \u1072 \u1089 \u1090 \u1088 \u1086 \u1081 \u1082 \u1080  (\u1040 \u1076 \u1072 \u1087 \u1090 \u1080 \u1088 \u1086 \u1074 \u1072 \u1085 \u1099  \u1087 \u1086 \u1076  \u1082 \u1086 \u1089 \u1084 \u1086 \u1089 )\
-const SETTINGS = \{\
-    gravity: 0.25,      // \uc0\u1043 \u1088 \u1072 \u1074 \u1080 \u1090 \u1072 \u1094 \u1080 \u1103  \u1074  \u1082 \u1086 \u1089 \u1084 \u1086 \u1089 \u1077  (\u1090 \u1103 \u1075 \u1072  \u1074 \u1085 \u1080 \u1079 )\
-    thrust: -0.6,       // \uc0\u1057 \u1080 \u1083 \u1072  \u1074 \u1079 \u1083 \u1077 \u1090 \u1072  \u1087 \u1088 \u1080  \u1090 \u1072 \u1087 \u1077 \
-    friction: 0.98,     // \uc0\u1058 \u1088 \u1077 \u1085 \u1080 \u1077 /\u1057 \u1086 \u1087 \u1088 \u1086 \u1090 \u1080 \u1074 \u1083 \u1077 \u1085 \u1080 \u1077 \
-    levelTime: 60,      // \uc0\u1057 \u1077 \u1082 \u1091 \u1085 \u1076  \u1085 \u1072  \u1091 \u1088 \u1086 \u1074 \u1077 \u1085 \u1100 \
-    baseSpeed: 4.0,     // \uc0\u1053 \u1072 \u1095 \u1072 \u1083 \u1100 \u1085 \u1072 \u1103  \u1089 \u1082 \u1086 \u1088 \u1086 \u1089 \u1090 \u1100  \u1087 \u1086 \u1083 \u1077 \u1090 \u1072 \
-    maxLevel: 10\
-\};\
-\
-let state = \{\
-    screen: 'splash',\
-    isReady: false, \
-    score: 0,\
-    level: 1,\
-    timeLeft: SETTINGS.levelTime,\
-    gameSpeed: SETTINGS.baseSpeed,\
-    width: window.innerWidth,\
-    height: window.innerHeight,\
-    lastTime: 0,\
-    frame: 0\
-\};\
-\
-// UFO (80x61 \uc0\u1082 \u1072 \u1082  \u1090 \u1099  \u1087 \u1088 \u1086 \u1089 \u1080 \u1083 )\
-let ufo = \{ x: 50, y: 0, w: 80, h: 61, vy: 0, angle: 0, thrusting: false \};\
-\
-let entities = [];\
-let particles = [];\
-let starsFar = [];  // \uc0\u1057 \u1083 \u1086 \u1081  \u1079 \u1074 \u1077 \u1079 \u1076  1 (\u1084 \u1077 \u1076 \u1083 \u1077 \u1085 \u1085 \u1099 \u1081 )\
-let starsNear = []; // \uc0\u1057 \u1083 \u1086 \u1081  \u1079 \u1074 \u1077 \u1079 \u1076  2 (\u1073 \u1099 \u1089 \u1090 \u1088 \u1099 \u1081 )\
-\
-function initGame() \{\
-    state.width = window.innerWidth;\
-    state.height = window.innerHeight;\
-    canvas.width = state.width;\
-    canvas.height = state.height;\
-\
-    // \uc0\u1047 \u1072 \u1075 \u1088 \u1091 \u1079 \u1082 \u1072  \u1091 \u1088 \u1086 \u1074 \u1085 \u1103  \u1080 \u1079  \u1087 \u1072 \u1084 \u1103 \u1090 \u1080 \
-    const savedLevel = localStorage.getItem('ufo_level');\
-    state.level = savedLevel ? parseInt(savedLevel) : 1;\
-    \
-    // \uc0\u1050 \u1086 \u1088 \u1088 \u1077 \u1082 \u1090 \u1080 \u1088 \u1086 \u1074 \u1082 \u1072  \u1089 \u1082 \u1086 \u1088 \u1086 \u1089 \u1090 \u1080  \u1087 \u1086 \u1076  \u1090 \u1077 \u1082 \u1091 \u1097 \u1080 \u1081  \u1091 \u1088 \u1086 \u1074 \u1077 \u1085 \u1100 \
-    state.gameSpeed = SETTINGS.baseSpeed + (state.level - 1) * 0.5;\
-\
-    // \uc0\u1043 \u1077 \u1085 \u1077 \u1088 \u1072 \u1094 \u1080 \u1103  \u1079 \u1074 \u1077 \u1079 \u1076 \u1085 \u1086 \u1075 \u1086  \u1092 \u1086 \u1085 \u1072 \
-    starsFar = []; starsNear = [];\
-    for(let i=0; i<40; i++) \{\
-        starsFar.push(\{ x: Math.random() * state.width, y: Math.random() * state.height, s: 0.5 + Math.random() \});\
-        starsNear.push(\{ x: Math.random() * state.width, y: Math.random() * state.height, s: 1.2 + Math.random() \});\
-    \}\
-\}\
-\
-// \uc0\u1059 \u1087 \u1088 \u1072 \u1074 \u1083 \u1077 \u1085 \u1080 \u1077 \
-function handleInput(isDown) \{\
-    if (state.screen !== 'playing') return;\
-    if (isDown && !state.isReady) state.isReady = true;\
-    ufo.thrusting = isDown;\
-\}\
-\
-window.addEventListener('mousedown', () => handleInput(true));\
-window.addEventListener('mouseup', () => handleInput(false));\
-window.addEventListener('touchstart', (e) => \{ handleInput(true); \}, \{passive: true\});\
-window.addEventListener('touchend', () => \{ handleInput(false); \});\
-\
-function spawnEntities() \{\
-    // \uc0\u1047 \u1074 \u1077 \u1079 \u1076 \u1086 \u1095 \u1082 \u1080  (\u1073 \u1086 \u1085 \u1091 \u1089 \u1099 )\
-    if (Math.random() < 0.02) \{\
-        entities.push(\{ type: 'star', x: state.width + 50, y: 50 + Math.random() * (state.height - 100), r: 16 \});\
-    \}\
-    \
-    // \uc0\u1040 \u1089 \u1090 \u1077 \u1088 \u1086 \u1080 \u1076 \u1099  (\u1095 \u1072 \u1089 \u1090 \u1086 \u1090 \u1072  \u1088 \u1072 \u1089 \u1090 \u1077 \u1090  \u1089  \u1091 \u1088 \u1086 \u1074 \u1085 \u1077 \u1084 )\
-    let astChance = 0.01 + (state.level * 0.003);\
-    if (Math.random() < astChance) \{\
-        let isBig = Math.random() > 0.6;\
-        entities.push(\{ \
-            type: isBig ? 'astB' : 'astS', \
-            x: state.width + 100, \
-            y: Math.random() * state.height, \
-            r: isBig ? 35 : 20,\
-            rot: Math.random() * Math.PI,\
-            rotSpeed: (Math.random() - 0.5) * 0.1\
-        \});\
-    \}\
-\}\
-\
-function update(timestamp) \{\
-    if (!state.lastTime) state.lastTime = timestamp;\
-    let dt = (timestamp - state.lastTime) / 16;\
-    state.lastTime = timestamp;\
-    state.frame++;\
-\
-    if (state.screen !== 'playing') return;\
-\
-    // \uc0\u1058 \u1072 \u1081 \u1084 \u1077 \u1088  \u1091 \u1088 \u1086 \u1074 \u1085 \u1103 \
-    if (state.isReady) \{\
-        state.timeLeft -= (dt * 16) / 1000;\
-        if (state.timeLeft <= 0 && state.level < SETTINGS.maxLevel) \{\
-            state.level++;\
-            state.timeLeft = SETTINGS.levelTime;\
-            state.gameSpeed += 0.5;\
-            localStorage.setItem('ufo_level', state.level); // \uc0\u1057 \u1086 \u1093 \u1088 \u1072 \u1085 \u1103 \u1077 \u1084  \u1087 \u1088 \u1086 \u1075 \u1088 \u1077 \u1089 \u1089 \
-            if(tg) tg.HapticFeedback.notificationOccurred('success');\
-        \}\
-    \}\
-\
-    // \uc0\u1060 \u1080 \u1079 \u1080 \u1082 \u1072  UFO\
-    if (!state.isReady) \{\
-        ufo.y = state.height / 2;\
-        ufo.vy = 0;\
-    \} else \{\
-        if (ufo.thrusting) ufo.vy += SETTINGS.thrust;\
-        ufo.vy += SETTINGS.gravity;\
-        ufo.vy *= SETTINGS.friction;\
-        ufo.y += ufo.vy;\
-\
-        // \uc0\u1059 \u1075 \u1086 \u1083  \u1085 \u1072 \u1082 \u1083 \u1086 \u1085 \u1072 \
-        let targetAngle = Math.max(-0.4, Math.min(0.4, ufo.vy * 0.08));\
-        ufo.angle += (targetAngle - ufo.angle) * 0.1;\
-\
-        // \uc0\u1057 \u1084 \u1077 \u1088 \u1090 \u1100  \u1086 \u1073  \u1075 \u1088 \u1072 \u1085 \u1080 \u1094 \u1099  \u1101 \u1082 \u1088 \u1072 \u1085 \u1072 \
-        if (ufo.y + ufo.h/2 > state.height || ufo.y - ufo.h/2 < 0) gameOver();\
-    \}\
-\
-    // \uc0\u1055 \u1072 \u1088 \u1072 \u1083 \u1083 \u1072 \u1082 \u1089  \u1079 \u1074 \u1077 \u1079 \u1076 \
-    starsFar.forEach(s => \{\
-        s.x -= (state.gameSpeed * 0.3) * dt;\
-        if(s.x < 0) s.x = state.width;\
-    \});\
-    starsNear.forEach(s => \{\
-        s.x -= (state.gameSpeed * 0.6) * dt;\
-        if(s.x < 0) s.x = state.width;\
-    \});\
-\
-    // \uc0\u1054 \u1073 \u1098 \u1077 \u1082 \u1090 \u1099 \
-    entities.forEach((ent, index) => \{\
-        ent.x -= state.gameSpeed * dt;\
-        if(ent.rot !== undefined) ent.rot += ent.rotSpeed;\
-\
-        // \uc0\u1050 \u1086 \u1083 \u1083 \u1080 \u1079 \u1080 \u1103  (\u1082 \u1088 \u1091 \u1075 -\u1082 \u1088 \u1091 \u1075 )\
-        let dx = (ufo.x + ufo.w/2) - ent.x;\
-        let dy = (ufo.y + ufo.h/2) - ent.y;\
-        let dist = Math.sqrt(dx*dx + dy*dy);\
-        \
-        if (dist < ent.r + 25) \{\
-            if (ent.type === 'star') \{\
-                state.score += 10;\
-                entities.splice(index, 1);\
-                if(tg) tg.HapticFeedback.impactOccurred('light');\
-            \} else \{\
-                gameOver();\
-            \}\
-        \}\
-    \});\
-    entities = entities.filter(ent => ent.x > -150);\
-    if(state.isReady) spawnEntities();\
-\
-    document.getElementById('score-display').innerText = state.score;\
-    document.getElementById('timer-display').innerText = Math.ceil(state.timeLeft);\
-    document.getElementById('level-display').innerText = state.level;\
-\}\
-\
-function draw() \{\
-    ctx.fillStyle = '#050508'; // \uc0\u1043 \u1083 \u1091 \u1073 \u1086 \u1082 \u1080 \u1081  \u1082 \u1086 \u1089 \u1084 \u1086 \u1089 \
-    ctx.fillRect(0, 0, state.width, state.height);\
-\
-    // \uc0\u1047 \u1074 \u1077 \u1079 \u1076 \u1099 \
-    ctx.fillStyle = '#ffffff';\
-    starsFar.forEach(s => \{\
-        ctx.globalAlpha = 0.4;\
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI*2); ctx.fill();\
-    \});\
-    starsNear.forEach(s => \{\
-        ctx.globalAlpha = 0.8;\
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI*2); ctx.fill();\
-    \});\
-    ctx.globalAlpha = 1.0;\
-\
-    // \uc0\u1054 \u1073 \u1098 \u1077 \u1082 \u1090 \u1099 \
-    entities.forEach(ent => \{\
-        let img = ent.type === 'star' ? assets.star : (ent.type === 'astS' ? assets.astS : assets.astB);\
-        if (img.complete) \{\
-            ctx.save();\
-            ctx.translate(ent.x, ent.y);\
-            if(ent.rot) ctx.rotate(ent.rot);\
-            ctx.drawImage(img, -ent.r, -ent.r, ent.r*2, ent.r*2);\
-            ctx.restore();\
-        \}\
-    \});\
-\
-    // UFO\
-    ctx.save();\
-    ctx.translate(ufo.x + ufo.w/2, ufo.y + ufo.h/2);\
-    ctx.rotate(ufo.angle);\
-    if (assets.ufo.complete) \{\
-        ctx.drawImage(assets.ufo, -ufo.w/2, -ufo.h/2, ufo.w, ufo.h);\
-    \} else \{\
-        ctx.fillStyle = 'cyan'; ctx.fillRect(-ufo.w/2, -ufo.h/2, ufo.w, ufo.h);\
-    \}\
-    ctx.restore();\
-\}\
-\
-function loop(t) \{ update(t); draw(); requestAnimationFrame(loop); \}\
-\
-function startGame() \{\
-    state.screen = 'playing';\
-    state.isReady = false; \
-    state.score = 0; \
-    state.timeLeft = SETTINGS.levelTime;\
-    \
-    // \uc0\u1048 \u1085 \u1080 \u1094 \u1080 \u1072 \u1083 \u1080 \u1079 \u1072 \u1094 \u1080 \u1103  (\u1087 \u1086 \u1076 \u1093 \u1074 \u1072 \u1090 \u1080 \u1090  \u1089 \u1086 \u1093 \u1088 \u1072 \u1085 \u1077 \u1085 \u1085 \u1099 \u1081  \u1091 \u1088 \u1086 \u1074 \u1077 \u1085 \u1100 )\
-    initGame();\
-    \
-    entities = []; \
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));\
-    document.getElementById('hud').classList.add('active');\
-\}\
-\
-function gameOver() \{\
-    state.screen = 'gameover';\
-    document.getElementById('hud').classList.remove('active');\
-    document.getElementById('game-over-screen').classList.add('active');\
-    document.getElementById('final-score').innerText = state.score;\
-    if(tg) tg.HapticFeedback.notificationOccurred('error');\
-\
-    // \uc0\u1056 \u1077 \u1082 \u1083 \u1072 \u1084 \u1085 \u1099 \u1081  \u1073 \u1083 \u1086 \u1082 \
-    if (AdController) \{\
-        AdController.show().then(() => \{\
-            console.log("Ad completed");\
-        \}).catch(e => \{\
-            console.log("Ad failed/skipped", e);\
-        \});\
-    \}\
-\}\
-\
-document.getElementById('dive-btn').onclick = startGame;\
-document.getElementById('restart-btn').onclick = startGame;\
-window.addEventListener('resize', initGame);\
-\
-initGame();\
-requestAnimationFrame(loop);}
+// --- 1. CONFIG & INIT ---
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.expand(); tg.ready(); }
+
+const ADS_BLOCK_ID = "9a1dea9f8d134730875d57f334be6f6e";
+const AdController = window.Adsgram?.init({ blockId: ADS_BLOCK_ID });
+
+const SETTINGS = {
+    gravity: 0.25,
+    thrust: -0.6,
+    friction: 0.98,
+    levelTime: 60,
+    baseSpeed: 3.5,
+    maxLevel: 99,
+    galaxySpeed: 10, // px за весь уровень (очень медленно)
+    invulnerabilityTime: 2000 // ms
+};
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// --- 2. STORAGE MODULE (Сохранение прогресса) ---
+const Storage = {
+    data: {
+        stars: 0,
+        unlockedShips: [1], // ID купленных кораблей
+        currentShip: 1,
+        lifeUpgrades: 0, // Количество купленных доп. жизней
+        level: 1
+    },
+    load() {
+        const saved = localStorage.getItem('zibbo_save_v1');
+        if (saved) {
+            this.data = JSON.parse(saved);
+        }
+        this.updateUI();
+    },
+    save() {
+        localStorage.setItem('zibbo_save_v1', JSON.stringify(this.data));
+        this.updateUI();
+    },
+    updateUI() {
+        document.getElementById('total-stars-display').innerText = this.data.stars;
+        document.getElementById('shop-balance').innerText = this.data.stars;
+    },
+    getMaxLives() {
+        // Базовая 1 + Апгрейды жизней + Бонус за каждый купленный корабль (кроме дефолтного)
+        const shipBonus = this.data.unlockedShips.length - 1; 
+        return 1 + this.data.lifeUpgrades + shipBonus;
+    }
+};
+
+// --- 3. AUDIO MODULE ---
+const AudioMgr = {
+    sounds: {
+        hit: new Audio('hit.ogg'),
+        collect: new Audio('collect.ogg'),
+        click: new Audio('button_click.ogg')
+    },
+    play(name) {
+        if (this.sounds[name]) {
+            this.sounds[name].currentTime = 0;
+            this.sounds[name].play().catch(() => {}); // Игнор ошибок автоплея
+        }
+    }
+};
+
+// --- 4. ASSETS MANAGE ---
+const Assets = {
+    ships: {
+        1: document.getElementById('ufo-1'),
+        2: document.getElementById('ufo-2'),
+        3: document.getElementById('ufo-3'),
+        4: document.getElementById('ufo-4'),
+        5: document.getElementById('ufo-5'),
+    },
+    galaxy: document.getElementById('galaxy-bg'),
+    star: document.getElementById('star-img'),
+    astS: document.getElementById('ast-s-img'),
+    astB: document.getElementById('ast-b-img')
+};
+
+// --- 5. SHOP MODULE ---
+const Shop = {
+    items: [
+        { type: 'life', cost: 100, id: 'l1', name: '+1 Max Life' },
+        { type: 'life', cost: 200, id: 'l2', name: '+1 Max Life' },
+        { type: 'life', cost: 300, id: 'l3', name: '+1 Max Life' },
+        { type: 'life', cost: 500, id: 'l4', name: '+1 Max Life' },
+        { type: 'ship', cost: 300, id: 2, name: 'Speeder UFO' },
+        { type: 'ship', cost: 400, id: 3, name: 'Tank UFO' },
+        { type: 'ship', cost: 400, id: 4, name: 'Neon UFO' },
+        { type: 'ship', cost: 500, id: 5, name: 'Golden UFO' }
+    ],
+    
+    render() {
+        const container = document.getElementById('shop-content');
+        container.innerHTML = '';
+        
+        // Фильтр по табам (пока показываем всё или можно добавить логику табов)
+        // Для простоты рендерим всё, но можно разделить
+        
+        this.items.forEach((item, index) => {
+            const el = document.createElement('div');
+            el.className = 'shop-item';
+            
+            // Определяем состояние
+            let isBought = false;
+            let isEquipped = false;
+            
+            if (item.type === 'life') {
+                // Логика жизней: они покупаются по очереди
+                const lifeLevel = parseInt(item.id.replace('l',''));
+                if (Storage.data.lifeUpgrades >= lifeLevel) isBought = true;
+            } else {
+                if (Storage.data.unlockedShips.includes(item.id)) isBought = true;
+                if (Storage.data.currentShip === item.id) isEquipped = true;
+            }
+
+            // Картинка
+            let imgSrc = item.type === 'ship' ? Assets.ships[item.id].src : 'star_pickup.png'; // Можно иконку сердца
+            
+            let btnText = isBought ? (item.type === 'ship' ? (isEquipped ? 'EQUIPPED' : 'EQUIP') : 'OWNED') : `${item.cost} ⭐`;
+            let btnClass = isEquipped ? 'buy-btn equip' : 'buy-btn';
+            let isDisabled = (isBought && item.type === 'life') || isEquipped;
+            
+            // Если предыдущая жизнь не куплена, блокируем следующую
+            if (item.type === 'life' && !isBought) {
+                 const prevLifeLevel = parseInt(item.id.replace('l','')) - 1;
+                 if (prevLifeLevel > Storage.data.lifeUpgrades) isDisabled = true;
+            }
+
+            el.innerHTML = `
+                <img src="${imgSrc}">
+                <div style="font-size:0.8rem">${item.name}</div>
+                <button class="${btnClass}" ${isDisabled ? 'disabled' : ''}>${btnText}</button>
+            `;
+
+            el.querySelector('button').onclick = () => this.buy(item);
+            container.appendChild(el);
+        });
+    },
+
+    buy(item) {
+        AudioMgr.play('click');
+        if (item.type === 'ship') {
+            if (Storage.data.unlockedShips.includes(item.id)) {
+                Storage.data.currentShip = item.id; // Equip
+            } else {
+                if (Storage.data.stars >= item.cost) {
+                    Storage.data.stars -= item.cost;
+                    Storage.data.unlockedShips.push(item.id);
+                    Storage.data.currentShip = item.id; // Auto equip
+                } else return;
+            }
+        } else if (item.type === 'life') {
+             if (Storage.data.stars >= item.cost) {
+                Storage.data.stars -= item.cost;
+                Storage.data.lifeUpgrades++;
+             } else return;
+        }
+        Storage.save();
+        this.render();
+    }
+};
+
+// --- 6. GAME ENGINE ---
+const Game = {
+    state: {
+        screen: 'splash', // splash, playing, paused, level_done, gameover
+        width: window.innerWidth,
+        height: window.innerHeight,
+        score: 0, // Звезды за уровень
+        lives: 1,
+        level: 1,
+        timeLeft: 60,
+        gameSpeed: 0,
+        lastTime: 0,
+        invulnerableUntil: 0,
+        galaxyOffset: 0
+    },
+    ufo: { x: 50, y: 0, w: 80, h: 61, vy: 0, angle: 0, thrusting: false },
+    entities: [],
+    starsBg: [], // Мелкие звезды (частицы)
+
+    init() {
+        this.resize();
+        Storage.load();
+        
+        // Генерация фоновых частиц
+        this.starsBg = [];
+        for(let i=0; i<50; i++) {
+            this.starsBg.push({
+                x: Math.random() * this.state.width,
+                y: Math.random() * this.state.height,
+                s: Math.random() * 2,
+                speed: 0.2 + Math.random() * 0.5
+            });
+        }
+
+        window.addEventListener('resize', () => this.resize());
+        
+        // Inputs
+        const inputStart = () => { if(this.state.screen === 'playing') this.ufo.thrusting = true; };
+        const inputEnd = () => { if(this.state.screen === 'playing') this.ufo.thrusting = false; };
+        
+        window.addEventListener('mousedown', inputStart);
+        window.addEventListener('mouseup', inputEnd);
+        window.addEventListener('touchstart', (e) => { inputStart(); }, {passive: true});
+        window.addEventListener('touchend', inputEnd);
+        
+        // UI Buttons
+        document.getElementById('play-btn').onclick = () => this.startLevel(Storage.data.level);
+        document.getElementById('continue-btn').onclick = () => this.startLevel(this.state.level + 1);
+        document.getElementById('restart-btn').onclick = () => this.startLevel(this.state.level);
+        document.getElementById('pause-btn').onclick = () => this.togglePause();
+        document.getElementById('home-btn').onclick = () => this.showScreen('splash');
+        
+        // Shop UI
+        document.getElementById('shop-btn-main').onclick = () => { this.showScreen('shop'); Shop.render(); };
+        document.getElementById('shop-btn-level').onclick = () => { this.showScreen('shop'); Shop.render(); };
+        document.getElementById('close-shop').onclick = () => { 
+            // Возвращаемся туда, откуда пришли
+            if (this.state.score > 0) this.showScreen('level_screen'); 
+            else this.showScreen('splash');
+        };
+
+        requestAnimationFrame(t => this.loop(t));
+    },
+
+    resize() {
+        this.state.width = window.innerWidth;
+        this.state.height = window.innerHeight;
+        canvas.width = this.state.width;
+        canvas.height = this.state.height;
+    },
+
+    startLevel(lvl) {
+        this.state.level = lvl;
+        this.state.score = 0; // Звезды сбрасываются (новые для уровня)
+        this.state.timeLeft = SETTINGS.levelTime;
+        this.state.lives = Storage.getMaxLives();
+        this.state.gameSpeed = SETTINGS.baseSpeed + (lvl * 0.1); // Ускорение каждый уровень
+        this.state.invulnerableUntil = 0;
+        this.state.galaxyOffset = 0;
+        
+        // Reset UFO
+        this.ufo.y = this.state.height / 2;
+        this.ufo.vy = 0;
+        this.ufo.angle = 0;
+        this.entities = [];
+        
+        this.showScreen('playing');
+        
+        // Обновляем HUD
+        document.getElementById('level-display').innerText = lvl;
+        document.getElementById('lives-display').innerText = this.state.lives;
+        
+        // Кнопка паузы
+        document.getElementById('pause-btn').classList.add('visible');
+    },
+
+    togglePause() {
+        if (this.state.screen === 'playing') {
+            this.state.screen = 'paused';
+            document.getElementById('level-screen').classList.add('active'); // Используем экран уровня как паузу
+            document.getElementById('level-title').innerText = "PAUSED";
+            document.getElementById('level-stars').innerText = this.state.score;
+            document.getElementById('continue-btn').innerText = "RESUME";
+            document.getElementById('continue-btn').onclick = () => {
+                this.state.screen = 'playing';
+                document.getElementById('level-screen').classList.remove('active');
+                document.getElementById('continue-btn').onclick = () => this.startLevel(this.state.level + 1); // Возвращаем логику
+            };
+        }
+    },
+
+    spawnLogic() {
+        // Шанс спавна зависит от уровня (макс на 50 уровне)
+        const difficulty = Math.min(this.state.level, 50) / 50; 
+        
+        // Звезды
+        if (Math.random() < 0.03) {
+            this.entities.push({ type: 'star', x: this.state.width + 50, y: Math.random() * (this.state.height - 100) + 50, r: 20 });
+        }
+
+        // Астероиды
+        let astChance = 0.015 + (difficulty * 0.03);
+        
+        // В последние 5 секунд ускорение и меньше астероидов
+        if (this.state.timeLeft < 5) astChance = 0.005;
+
+        if (Math.random() < astChance) {
+            const isBig = Math.random() > 0.6;
+            this.entities.push({
+                type: isBig ? 'astB' : 'astS',
+                x: this.state.width + 100,
+                y: Math.random() * this.state.height,
+                r: isBig ? 35 : 20,
+                rot: Math.random(),
+                rotSpeed: (Math.random() - 0.5) * 0.1
+            });
+        }
+    },
+
+    update(dt) {
+        if (this.state.screen !== 'playing') return;
+
+        // Timer
+        this.state.timeLeft -= dt;
+        if (this.state.timeLeft <= 0) {
+            this.levelComplete();
+            return;
+        }
+
+        // Physics
+        if (this.ufo.thrusting) this.ufo.vy += SETTINGS.thrust;
+        this.ufo.vy += SETTINGS.gravity;
+        this.ufo.vy *= SETTINGS.friction;
+        this.ufo.y += this.ufo.vy;
+
+        // Angle
+        let targetAngle = Math.max(-0.4, Math.min(0.4, this.ufo.vy * 0.08));
+        this.ufo.angle += (targetAngle - this.ufo.angle) * 0.1;
+
+        // Bounds
+        if (this.ufo.y < 0) this.ufo.y = 0;
+        if (this.ufo.y + this.ufo.h > this.state.height) this.hitPlayer();
+
+        // Background Scroll (Galaxy)
+        // Двигаем очень медленно
+        this.state.galaxyOffset += (SETTINGS.galaxySpeed / 60) * dt; 
+
+        // Entities
+        this.spawnLogic();
+        
+        const now = Date.now();
+        const isInvulnerable = now < this.state.invulnerableUntil;
+
+        this.entities.forEach((ent, i) => {
+            ent.x -= this.state.gameSpeed * 1.5; // Объекты летят быстрее фона
+            if (ent.rot !== undefined) ent.rot += ent.rotSpeed;
+
+            // Collision
+            if (!isInvulnerable) {
+                let dx = (this.ufo.x + this.ufo.w/2) - ent.x;
+                let dy = (this.ufo.y + this.ufo.h/2) - ent.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+
+                if (dist < ent.r + 25) { // 25 - радиус UFO примерно
+                    if (ent.type === 'star') {
+                        AudioMgr.play('collect');
+                        this.state.score++;
+                        this.entities.splice(i, 1);
+                        if(tg) tg.HapticFeedback.impactOccurred('light');
+                    } else {
+                        this.hitPlayer();
+                    }
+                }
+            }
+        });
+
+        // Cleanup
+        this.entities = this.entities.filter(e => e.x > -100);
+
+        // UI Updates
+        document.getElementById('score-display').innerText = this.state.score;
+        document.getElementById('timer-display').innerText = Math.ceil(this.state.timeLeft);
+        
+        // Final rush visual
+        if (this.state.timeLeft < 5) {
+             document.getElementById('timer-display').style.color = 'red';
+             this.state.gameSpeed += 0.05; // Plavnoye uskorenie
+        } else {
+             document.getElementById('timer-display').style.color = 'white';
+        }
+    },
+
+    hitPlayer() {
+        AudioMgr.play('hit');
+        if(tg) tg.HapticFeedback.notificationOccurred('error');
+        
+        if (Date.now() < this.state.invulnerableUntil) return;
+
+        this.state.lives--;
+        document.getElementById('lives-display').innerText = this.state.lives;
+
+        if (this.state.lives > 0) {
+            // Blink / Invulnerable
+            this.state.invulnerableUntil = Date.now() + SETTINGS.invulnerabilityTime;
+            // Отброс немного назад/вверх чтобы не застрять
+            this.ufo.vy = -5; 
+        } else {
+            this.gameOver();
+        }
+    },
+
+    levelComplete() {
+        this.state.screen = 'level_done';
+        document.getElementById('pause-btn').classList.remove('visible');
+        
+        // Save stars
+        Storage.data.stars += this.state.score;
+        Storage.data.level = Math.max(Storage.data.level, this.state.level + 1);
+        Storage.save();
+
+        // Show Screen
+        this.showScreen('level-screen');
+        document.getElementById('level-title').innerText = `STAGE ${this.state.level} DONE`;
+        document.getElementById('level-stars').innerText = this.state.score;
+        document.getElementById('continue-btn').innerText = "CONTINUE";
+        
+        // Sound
+        // AudioMgr.play('win');
+    },
+
+    gameOver() {
+        this.state.screen = 'gameover';
+        document.getElementById('pause-btn').classList.remove('visible');
+        
+        this.showScreen('game-over-screen');
+        document.getElementById('final-score').innerText = this.state.score;
+
+        // Реклама
+        if (AdController) {
+            AdController.show().catch(e => console.log("Ad skipped"));
+        }
+
+        // Блокировка кнопки Retry
+        const btn = document.getElementById('retry-btn');
+        btn.disabled = true;
+        let sec = 5;
+        btn.innerText = `Wait ${sec}s...`;
+        
+        const timer = setInterval(() => {
+            sec--;
+            if (sec <= 0) {
+                clearInterval(timer);
+                btn.disabled = false;
+                btn.innerText = "RETRY";
+            } else {
+                btn.innerText = `Wait ${sec}s...`;
+            }
+        }, 1000);
+    },
+
+    draw() {
+        // Clear
+        ctx.fillStyle = '#050508';
+        ctx.fillRect(0, 0, this.state.width, this.state.height);
+
+        // 1. Draw Galaxy (Parallax)
+        // Рисуем картинку дважды для бесшовности
+        if (Assets.galaxy.complete) {
+            const gw = Assets.galaxy.width;
+            const gh = Assets.galaxy.height;
+            // Растягиваем по высоте экрана, сохраняя пропорции или кропая
+            // Для простоты растянем на весь экран + запас для движения
+            
+            // Смещение по X (движемся вправо по картинке, то есть картинка едет влево)
+            let xPos = -this.state.galaxyOffset % this.state.width;
+            
+            // Рисуем первую копию
+            ctx.drawImage(Assets.galaxy, xPos, 0, this.state.width, this.state.height);
+            // Рисуем вторую копию справа
+            ctx.drawImage(Assets.galaxy, xPos + this.state.width, 0, this.state.width, this.state.height);
+        }
+
+        // 2. Stars Particles
+        ctx.fillStyle = 'white';
+        this.starsBg.forEach(s => {
+            // Двигаем звезды
+            if(this.state.screen === 'playing') {
