@@ -1,11 +1,15 @@
 /**
  * ZIBBO: Space Journey - Core Engine
- * Architecture: Modular (Storage, Audio, Shop, Game)
+ * Fixed: Mobile touch events, Shop button listeners, Audio blocking
  */
 
 // --- 1. CONFIG & INIT ---
 const tg = window.Telegram?.WebApp;
-if (tg) { tg.expand(); tg.ready(); }
+if (tg) { 
+    tg.expand(); 
+    tg.ready(); 
+    if (tg.headerColor) tg.setHeaderColor('#050508');
+}
 
 const ADS_BLOCK_ID = "9a1dea9f8d134730875d57f334be6f6e";
 const AdController = window.Adsgram?.init({ blockId: ADS_BLOCK_ID });
@@ -17,26 +21,28 @@ const SETTINGS = {
     levelTime: 60,
     baseSpeed: 3.5,
     maxLevel: 99,
-    galaxySpeed: 10, // px за весь уровень (очень медленно)
-    invulnerabilityTime: 2000 // ms
+    galaxySpeed: 10,
+    invulnerabilityTime: 2000
 };
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-// --- 2. STORAGE MODULE (Сохранение прогресса) ---
+// --- 2. STORAGE MODULE ---
 const Storage = {
     data: {
         stars: 0,
-        unlockedShips: [1], // ID купленных кораблей
+        unlockedShips: [1],
         currentShip: 1,
-        lifeUpgrades: 0, // Количество купленных доп. жизней
+        lifeUpgrades: 0,
         level: 1
     },
     load() {
         const saved = localStorage.getItem('zibbo_save_v1');
         if (saved) {
-            this.data = JSON.parse(saved);
+            try {
+                this.data = JSON.parse(saved);
+            } catch(e) { console.error("Save corrupted"); }
         }
         this.updateUI();
     },
@@ -45,11 +51,12 @@ const Storage = {
         this.updateUI();
     },
     updateUI() {
-        document.getElementById('total-stars-display').innerText = this.data.stars;
-        document.getElementById('shop-balance').innerText = this.data.stars;
+        const totalStars = document.getElementById('total-stars-display');
+        const shopBalance = document.getElementById('shop-balance');
+        if(totalStars) totalStars.innerText = this.data.stars;
+        if(shopBalance) shopBalance.innerText = this.data.stars;
     },
     getMaxLives() {
-        // Базовая 1 + Апгрейды жизней + Бонус за каждый купленный корабль (кроме дефолтного)
         const shipBonus = this.data.unlockedShips.length - 1; 
         return 1 + this.data.lifeUpgrades + shipBonus;
     }
@@ -63,9 +70,10 @@ const AudioMgr = {
         click: new Audio('button_click.ogg')
     },
     play(name) {
-        if (this.sounds[name]) {
-            this.sounds[name].currentTime = 0;
-            this.sounds[name].play().catch(() => {}); // Игнор ошибок автоплея
+        const snd = this.sounds[name];
+        if (snd && snd.readyState >= 2) {
+            snd.currentTime = 0;
+            snd.play().catch(() => {}); 
         }
     }
 };
@@ -100,21 +108,17 @@ const Shop = {
     
     render() {
         const container = document.getElementById('shop-content');
+        if (!container) return;
         container.innerHTML = '';
         
-        // Фильтр по табам (пока показываем всё или можно добавить логику табов)
-        // Для простоты рендерим всё, но можно разделить
-        
-        this.items.forEach((item, index) => {
+        this.items.forEach((item) => {
             const el = document.createElement('div');
             el.className = 'shop-item';
             
-            // Определяем состояние
             let isBought = false;
             let isEquipped = false;
             
             if (item.type === 'life') {
-                // Логика жизней: они покупаются по очереди
                 const lifeLevel = parseInt(item.id.replace('l',''));
                 if (Storage.data.lifeUpgrades >= lifeLevel) isBought = true;
             } else {
@@ -122,26 +126,27 @@ const Shop = {
                 if (Storage.data.currentShip === item.id) isEquipped = true;
             }
 
-            // Картинка
-            let imgSrc = item.type === 'ship' ? Assets.ships[item.id].src : 'star_pickup.png'; // Можно иконку сердца
-            
+            const asset = item.type === 'ship' ? Assets.ships[item.id] : {src: 'star_pickup.png'};
             let btnText = isBought ? (item.type === 'ship' ? (isEquipped ? 'EQUIPPED' : 'EQUIP') : 'OWNED') : `${item.cost} ⭐`;
             let btnClass = isEquipped ? 'buy-btn equip' : 'buy-btn';
             let isDisabled = (isBought && item.type === 'life') || isEquipped;
             
-            // Если предыдущая жизнь не куплена, блокируем следующую
             if (item.type === 'life' && !isBought) {
                  const prevLifeLevel = parseInt(item.id.replace('l','')) - 1;
                  if (prevLifeLevel > Storage.data.lifeUpgrades) isDisabled = true;
             }
 
             el.innerHTML = `
-                <img src="${imgSrc}">
+                <img src="${asset?.src || ''}">
                 <div style="font-size:0.8rem">${item.name}</div>
                 <button class="${btnClass}" ${isDisabled ? 'disabled' : ''}>${btnText}</button>
             `;
 
-            el.querySelector('button').onclick = () => this.buy(item);
+            // Исправленный листенер
+            el.querySelector('button').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.buy(item);
+            });
             container.appendChild(el);
         });
     },
@@ -150,19 +155,17 @@ const Shop = {
         AudioMgr.play('click');
         if (item.type === 'ship') {
             if (Storage.data.unlockedShips.includes(item.id)) {
-                Storage.data.currentShip = item.id; // Equip
-            } else {
-                if (Storage.data.stars >= item.cost) {
-                    Storage.data.stars -= item.cost;
-                    Storage.data.unlockedShips.push(item.id);
-                    Storage.data.currentShip = item.id; // Auto equip
-                } else return;
+                Storage.data.currentShip = item.id;
+            } else if (Storage.data.stars >= item.cost) {
+                Storage.data.stars -= item.cost;
+                Storage.data.unlockedShips.push(item.id);
+                Storage.data.currentShip = item.id;
             }
         } else if (item.type === 'life') {
              if (Storage.data.stars >= item.cost) {
                 Storage.data.stars -= item.cost;
                 Storage.data.lifeUpgrades++;
-             } else return;
+             }
         }
         Storage.save();
         this.render();
@@ -172,10 +175,10 @@ const Shop = {
 // --- 6. GAME ENGINE ---
 const Game = {
     state: {
-        screen: 'splash', // splash, playing, paused, level_done, gameover
+        screen: 'splash',
         width: window.innerWidth,
         height: window.innerHeight,
-        score: 0, // Звезды за уровень
+        score: 0,
         lives: 1,
         level: 1,
         timeLeft: 60,
@@ -186,13 +189,12 @@ const Game = {
     },
     ufo: { x: 50, y: 0, w: 80, h: 61, vy: 0, angle: 0, thrusting: false },
     entities: [],
-    starsBg: [], // Мелкие звезды (частицы)
+    starsBg: [],
 
     init() {
         this.resize();
         Storage.load();
         
-        // Генерация фоновых частиц
         this.starsBg = [];
         for(let i=0; i<50; i++) {
             this.starsBg.push({
@@ -205,28 +207,33 @@ const Game = {
 
         window.addEventListener('resize', () => this.resize());
         
-        // Inputs
-        const inputStart = () => { if(this.state.screen === 'playing') this.ufo.thrusting = true; };
-        const inputEnd = () => { if(this.state.screen === 'playing') this.ufo.thrusting = false; };
+        // Исправленное управление (Desktop + Mobile)
+        const inputStart = (e) => { 
+            if(this.state.screen === 'playing') {
+                this.ufo.thrusting = true;
+                if (e.cancelable) e.preventDefault();
+            }
+        };
+        const inputEnd = () => { this.ufo.thrusting = false; };
         
-        window.addEventListener('mousedown', inputStart);
+        canvas.addEventListener('mousedown', inputStart);
         window.addEventListener('mouseup', inputEnd);
-        window.addEventListener('touchstart', (e) => { inputStart(); }, {passive: true});
+        canvas.addEventListener('touchstart', inputStart, {passive: false});
         window.addEventListener('touchend', inputEnd);
         
         // UI Buttons
-        document.getElementById('play-btn').onclick = () => this.startLevel(Storage.data.level);
-        document.getElementById('continue-btn').onclick = () => this.startLevel(this.state.level + 1);
-        document.getElementById('restart-btn').onclick = () => this.startLevel(this.state.level);
-        document.getElementById('pause-btn').onclick = () => this.togglePause();
-        document.getElementById('home-btn').onclick = () => this.showScreen('splash');
+        document.getElementById('play-btn').onclick = () => { AudioMgr.play('click'); this.startLevel(Storage.data.level); };
+        document.getElementById('continue-btn').onclick = () => { AudioMgr.play('click'); this.startLevel(this.state.level + 1); };
+        document.getElementById('restart-btn').onclick = () => { AudioMgr.play('click'); this.startLevel(this.state.level); };
+        document.getElementById('retry-btn').onclick = () => { AudioMgr.play('click'); this.startLevel(this.state.level); };
+        document.getElementById('pause-btn').onclick = () => { AudioMgr.play('click'); this.togglePause(); };
+        document.getElementById('home-btn').onclick = () => { AudioMgr.play('click'); this.showScreen('splash'); };
         
-        // Shop UI
-        document.getElementById('shop-btn-main').onclick = () => { this.showScreen('shop'); Shop.render(); };
-        document.getElementById('shop-btn-level').onclick = () => { this.showScreen('shop'); Shop.render(); };
+        document.getElementById('shop-btn-main').onclick = () => { AudioMgr.play('click'); this.showScreen('shop'); Shop.render(); };
+        document.getElementById('shop-btn-level').onclick = () => { AudioMgr.play('click'); this.showScreen('shop'); Shop.render(); };
         document.getElementById('close-shop').onclick = () => { 
-            // Возвращаемся туда, откуда пришли
-            if (this.state.score > 0) this.showScreen('level_screen'); 
+            AudioMgr.play('click');
+            if (this.state.score > 0 || this.state.screen === 'level_done') this.showScreen('level-screen'); 
             else this.showScreen('splash');
         };
 
@@ -242,57 +249,41 @@ const Game = {
 
     startLevel(lvl) {
         this.state.level = lvl;
-        this.state.score = 0; // Звезды сбрасываются (новые для уровня)
+        this.state.score = 0;
         this.state.timeLeft = SETTINGS.levelTime;
         this.state.lives = Storage.getMaxLives();
-        this.state.gameSpeed = SETTINGS.baseSpeed + (lvl * 0.1); // Ускорение каждый уровень
+        this.state.gameSpeed = SETTINGS.baseSpeed + (lvl * 0.1);
         this.state.invulnerableUntil = 0;
         this.state.galaxyOffset = 0;
-        
-        // Reset UFO
         this.ufo.y = this.state.height / 2;
         this.ufo.vy = 0;
-        this.ufo.angle = 0;
         this.entities = [];
-        
         this.showScreen('playing');
-        
-        // Обновляем HUD
         document.getElementById('level-display').innerText = lvl;
         document.getElementById('lives-display').innerText = this.state.lives;
-        
-        // Кнопка паузы
         document.getElementById('pause-btn').classList.add('visible');
     },
 
     togglePause() {
         if (this.state.screen === 'playing') {
             this.state.screen = 'paused';
-            document.getElementById('level-screen').classList.add('active'); // Используем экран уровня как паузу
+            document.getElementById('level-screen').classList.add('active');
             document.getElementById('level-title').innerText = "PAUSED";
-            document.getElementById('level-stars').innerText = this.state.score;
             document.getElementById('continue-btn').innerText = "RESUME";
             document.getElementById('continue-btn').onclick = () => {
                 this.state.screen = 'playing';
                 document.getElementById('level-screen').classList.remove('active');
-                document.getElementById('continue-btn').onclick = () => this.startLevel(this.state.level + 1); // Возвращаем логику
+                document.getElementById('continue-btn').onclick = () => this.startLevel(this.state.level + 1);
             };
         }
     },
 
     spawnLogic() {
-        // Шанс спавна зависит от уровня (макс на 50 уровне)
         const difficulty = Math.min(this.state.level, 50) / 50; 
-        
-        // Звезды
         if (Math.random() < 0.03) {
             this.entities.push({ type: 'star', x: this.state.width + 50, y: Math.random() * (this.state.height - 100) + 50, r: 20 });
         }
-
-        // Астероиды
         let astChance = 0.015 + (difficulty * 0.03);
-        
-        // В последние 5 секунд ускорение и меньше астероидов
         if (this.state.timeLeft < 5) astChance = 0.005;
 
         if (Math.random() < astChance) {
@@ -310,169 +301,150 @@ const Game = {
 
     update(dt) {
         if (this.state.screen !== 'playing') return;
-
-        // Timer
         this.state.timeLeft -= dt;
-        if (this.state.timeLeft <= 0) {
-            this.levelComplete();
-            return;
-        }
+        if (this.state.timeLeft <= 0) { this.levelComplete(); return; }
 
-        // Physics
         if (this.ufo.thrusting) this.ufo.vy += SETTINGS.thrust;
         this.ufo.vy += SETTINGS.gravity;
         this.ufo.vy *= SETTINGS.friction;
         this.ufo.y += this.ufo.vy;
 
-        // Angle
         let targetAngle = Math.max(-0.4, Math.min(0.4, this.ufo.vy * 0.08));
         this.ufo.angle += (targetAngle - this.ufo.angle) * 0.1;
 
-        // Bounds
         if (this.ufo.y < 0) this.ufo.y = 0;
         if (this.ufo.y + this.ufo.h > this.state.height) this.hitPlayer();
 
-        // Background Scroll (Galaxy)
-        // Двигаем очень медленно
         this.state.galaxyOffset += (SETTINGS.galaxySpeed / 60) * dt; 
 
-        // Entities
         this.spawnLogic();
-        
         const now = Date.now();
         const isInvulnerable = now < this.state.invulnerableUntil;
 
         this.entities.forEach((ent, i) => {
-            ent.x -= this.state.gameSpeed * 1.5; // Объекты летят быстрее фона
+            ent.x -= this.state.gameSpeed * 1.5;
             if (ent.rot !== undefined) ent.rot += ent.rotSpeed;
 
-            // Collision
             if (!isInvulnerable) {
                 let dx = (this.ufo.x + this.ufo.w/2) - ent.x;
                 let dy = (this.ufo.y + this.ufo.h/2) - ent.y;
                 let dist = Math.sqrt(dx*dx + dy*dy);
-
-                if (dist < ent.r + 25) { // 25 - радиус UFO примерно
+                if (dist < ent.r + 25) {
                     if (ent.type === 'star') {
                         AudioMgr.play('collect');
                         this.state.score++;
                         this.entities.splice(i, 1);
-                        if(tg) tg.HapticFeedback.impactOccurred('light');
-                    } else {
-                        this.hitPlayer();
-                    }
+                        if(tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                    } else { this.hitPlayer(); }
                 }
             }
         });
 
-        // Cleanup
         this.entities = this.entities.filter(e => e.x > -100);
-
-        // UI Updates
         document.getElementById('score-display').innerText = this.state.score;
         document.getElementById('timer-display').innerText = Math.ceil(this.state.timeLeft);
-        
-        // Final rush visual
-        if (this.state.timeLeft < 5) {
-             document.getElementById('timer-display').style.color = 'red';
-             this.state.gameSpeed += 0.05; // Plavnoye uskorenie
-        } else {
-             document.getElementById('timer-display').style.color = 'white';
-        }
     },
 
     hitPlayer() {
-        AudioMgr.play('hit');
-        if(tg) tg.HapticFeedback.notificationOccurred('error');
-        
         if (Date.now() < this.state.invulnerableUntil) return;
-
+        AudioMgr.play('hit');
+        if(tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+        
         this.state.lives--;
         document.getElementById('lives-display').innerText = this.state.lives;
-
         if (this.state.lives > 0) {
-            // Blink / Invulnerable
             this.state.invulnerableUntil = Date.now() + SETTINGS.invulnerabilityTime;
-            // Отброс немного назад/вверх чтобы не застрять
             this.ufo.vy = -5; 
-        } else {
-            this.gameOver();
-        }
+        } else { this.gameOver(); }
     },
 
     levelComplete() {
         this.state.screen = 'level_done';
         document.getElementById('pause-btn').classList.remove('visible');
-        
-        // Save stars
         Storage.data.stars += this.state.score;
         Storage.data.level = Math.max(Storage.data.level, this.state.level + 1);
         Storage.save();
-
-        // Show Screen
         this.showScreen('level-screen');
         document.getElementById('level-title').innerText = `STAGE ${this.state.level} DONE`;
         document.getElementById('level-stars').innerText = this.state.score;
         document.getElementById('continue-btn').innerText = "CONTINUE";
-        
-        // Sound
-        // AudioMgr.play('win');
     },
 
     gameOver() {
         this.state.screen = 'gameover';
         document.getElementById('pause-btn').classList.remove('visible');
-        
         this.showScreen('game-over-screen');
         document.getElementById('final-score').innerText = this.state.score;
+        if (AdController) AdController.show().catch(() => {});
 
-        // Реклама
-        if (AdController) {
-            AdController.show().catch(e => console.log("Ad skipped"));
-        }
-
-        // Блокировка кнопки Retry
         const btn = document.getElementById('retry-btn');
         btn.disabled = true;
         let sec = 5;
-        btn.innerText = `Wait ${sec}s...`;
-        
         const timer = setInterval(() => {
             sec--;
-            if (sec <= 0) {
-                clearInterval(timer);
-                btn.disabled = false;
-                btn.innerText = "RETRY";
-            } else {
-                btn.innerText = `Wait ${sec}s...`;
-            }
+            btn.innerText = `Wait ${sec}s...`;
+            if (sec <= 0) { clearInterval(timer); btn.disabled = false; btn.innerText = "RETRY"; }
         }, 1000);
     },
 
     draw() {
-        // Clear
         ctx.fillStyle = '#050508';
         ctx.fillRect(0, 0, this.state.width, this.state.height);
 
-        // 1. Draw Galaxy (Parallax)
-        // Рисуем картинку дважды для бесшовности
         if (Assets.galaxy.complete) {
-            const gw = Assets.galaxy.width;
-            const gh = Assets.galaxy.height;
-            // Растягиваем по высоте экрана, сохраняя пропорции или кропая
-            // Для простоты растянем на весь экран + запас для движения
-            
-            // Смещение по X (движемся вправо по картинке, то есть картинка едет влево)
-            let xPos = -this.state.galaxyOffset % this.state.width;
-            
-            // Рисуем первую копию
+            let xPos = -(this.state.galaxyOffset * 20) % this.state.width;
             ctx.drawImage(Assets.galaxy, xPos, 0, this.state.width, this.state.height);
-            // Рисуем вторую копию справа
             ctx.drawImage(Assets.galaxy, xPos + this.state.width, 0, this.state.width, this.state.height);
         }
 
-        // 2. Stars Particles
         ctx.fillStyle = 'white';
         this.starsBg.forEach(s => {
-            // Двигаем звезды
             if(this.state.screen === 'playing') {
+                s.x -= s.speed * (this.state.gameSpeed * 0.5);
+                if(s.x < 0) s.x = this.state.width;
+            }
+            ctx.globalAlpha = 0.5;
+            ctx.fillRect(s.x, s.y, s.s, s.s);
+        });
+        ctx.globalAlpha = 1;
+
+        this.entities.forEach(ent => {
+            let img = ent.type === 'star' ? Assets.star : (ent.type === 'astS' ? Assets.astS : Assets.astB);
+            if(img.complete) {
+                ctx.save();
+                ctx.translate(ent.x, ent.y);
+                if(ent.rot) ctx.rotate(ent.rot);
+                ctx.drawImage(img, -ent.r, -ent.r, ent.r*2, ent.r*2);
+                ctx.restore();
+            }
+        });
+
+        const ufoImg = Assets.ships[Storage.data.currentShip];
+        if (ufoImg?.complete) {
+            ctx.save();
+            ctx.translate(this.ufo.x + this.ufo.w/2, this.ufo.y + this.ufo.h/2);
+            ctx.rotate(this.ufo.angle);
+            if (Date.now() < this.state.invulnerableUntil) ctx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.02) * 0.4;
+            ctx.drawImage(ufoImg, -this.ufo.w/2, -this.ufo.h/2, this.ufo.w, this.ufo.h);
+            ctx.restore();
+        }
+    },
+
+    loop(timestamp) {
+        let dt = (timestamp - this.state.lastTime) / 1000;
+        if (dt > 0.1) dt = 0.016; 
+        this.state.lastTime = timestamp;
+        this.update(dt);
+        this.draw();
+        requestAnimationFrame(t => this.loop(t));
+    },
+
+    showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        const target = document.getElementById(id === 'playing' ? 'hud' : (id === 'shop' ? 'shop-screen' : (id === 'splash' ? 'splash-screen' : id)));
+        if (target) target.classList.add('active');
+        if (id === 'playing') document.getElementById('hud').classList.add('active');
+    }
+};
+
+Game.init();
