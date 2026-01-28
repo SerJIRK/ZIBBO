@@ -26,61 +26,52 @@
         <canvas id="gameCanvas"></canvas>
 
         <div id="hud" class="hud-layer">
-            <div class="hud-glass-card">
-                <div class="hud-row top">
-                    <button id="pause-btn" class="pause-trigger">II</button>
-                    <div class="hud-item">⭐ <span id="game-score">0</span></div>
-                    <div class="hud-item ml-auto">LVL.<span id="current-lvl-display">1</span></div>
+            <div class="glass-hud">
+                <div class="hud-line">
+                    <button id="pause-btn" class="glass-btn-square">II</button>
+                    <div class="hud-score">⭐ <span id="game-score">0</span></div>
+                    <div class="hud-level">LVL.<span id="current-lvl-display">1</span></div>
                 </div>
-                <div class="hud-row bottom">
-                    <div id="lives-bar" class="lives-bar">
-                        </div>
+                <div class="hud-line second">
+                    <div id="lives-bar" class="lives-container"></div>
                     <div class="hud-timer">⏱️ <span id="game-timer">60</span></div>
                 </div>
             </div>
         </div>
 
         <div id="splash-screen" class="screen active">
-            <div class="top-bar-splash">⭐ <span id="total-stars-display">0</span></div>
-            <div class="logo-area"><img src="zibbo_logo.png" class="main-logo-img"></div>
-            <div class="hero-area">
-                <div class="pendulum-ufo"><img id="splash-ufo-preview" src="ufo_ship.png"></div>
+            <div class="total-balance">⭐ <span id="total-stars-display">0</span></div>
+            <img src="zibbo_logo.png" class="logo-img">
+            <div class="preview-zone">
+                <img id="splash-ufo-preview" src="ufo_ship.png" class="ufo-anim">
             </div>
-            <div class="menu-buttons">
-                <button id="play-btn" class="game-btn">PLAY</button>
-                <button id="shop-btn-main" class="game-btn small-btn">SHOP</button>
+            <div class="menu-stack">
+                <button id="play-btn" class="main-btn">START GAME</button>
+                <button id="shop-btn-main" class="sub-btn">HANGAR</button>
             </div>
-            <div class="footer-studio">RAZDREEV STUDIO</div>
+            <div class="studio-tag">RAZDREEV STUDIO</div>
         </div>
 
         <div id="shop-screen" class="screen">
-            <h2 class="neon-text">SPACE SHOP</h2>
-            <div class="shop-balance">Balance: ⭐ <span id="shop-balance">0</span></div>
+            <h2 class="screen-title">SPACE SHOP</h2>
             <div class="shop-tabs">
-                <button class="tab-btn active" data-tab="lives">LIVES</button>
+                <button class="tab-btn active" data-tab="lives">UPGRADES</button>
                 <button class="tab-btn" data-tab="ships">SHIPS</button>
             </div>
             <div id="shop-content" class="shop-grid"></div>
-            <button id="close-shop" class="game-btn back-btn">BACK</button>
+            <button id="close-shop" class="back-btn">RETURN</button>
         </div>
 
         <div id="level-screen" class="screen">
-            <h2 id="level-title">STAGE DONE</h2>
-            <div class="level-stats">
-                <p>Collected: ⭐ <span id="level-stars">0</span></p>
+            <h1 id="level-title">PAUSED</h1>
+            <div class="level-info">
+                <p>COLLECTED: ⭐ <span id="level-stars">0</span></p>
             </div>
-            <div class="btn-group-col">
-                <button id="continue-btn" class="game-btn">CONTINUE</button>
-                <button id="shop-btn-level" class="game-btn small-btn">SHOP</button>
-                <button id="exit-to-menu" class="text-btn">Main Menu</button>
+            <div class="menu-stack">
+                <button id="continue-btn" class="main-btn">CONTINUE</button>
+                <button id="retry-btn-over" class="sub-btn" style="display:none;">RETRY</button>
+                <button id="home-btn" class="text-link">MAIN MENU</button>
             </div>
-        </div>
-
-        <div id="game-over-screen" class="screen">
-            <h2 class="crash-title">CRASHED!</h2>
-            <p class="final-score-text">Score: <span id="final-score">0</span></p>
-            <button id="retry-btn" class="game-btn" disabled>Wait...</button>
-            <button id="home-btn" class="text-btn">Main Menu</button>
         </div>
     </div>
 
