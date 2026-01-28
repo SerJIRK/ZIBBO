@@ -11,91 +11,75 @@
 <body>
 
     <div style="display:none;">
-        <img id="ufo-1" src="ufo_ship.png" alt="UFO 1">
-        <img id="ufo-2" src="ufo_ship2.png" alt="UFO 2">
-        <img id="ufo-3" src="ufo_ship3.png" alt="UFO 3">
-        <img id="ufo-4" src="ufo_ship4.png" alt="UFO 4">
-        <img id="ufo-5" src="ufo_ship5.png" alt="UFO 5">
-        
-        <img id="zibbo-logo" src="zibbo_logo.png" alt="ZIBBO Logo">
-        <img id="galaxy-bg" src="galaxy_bg.png" alt="Galaxy Background">
-        <img id="star-img" src="star_pickup.png" alt="Star">
-        <img id="ast-s-img" src="asteroid_small.png" alt="Asteroid S">
-        <img id="ast-b-img" src="asteroid_big.png" alt="Asteroid B">
+        <img id="ufo-1" src="ufo_ship.png">
+        <img id="ufo-2" src="ufo_ship2.png">
+        <img id="ufo-3" src="ufo_ship3.png">
+        <img id="ufo-4" src="ufo_ship4.png">
+        <img id="ufo-5" src="ufo_ship5.png">
+        <img id="galaxy-bg" src="galaxy_bg.png">
+        <img id="star-img" src="star_pickup.png">
+        <img id="ast-s-img" src="asteroid_small.png">
+        <img id="ast-b-img" src="asteroid_big.png">
     </div>
 
     <div id="game-container">
         <canvas id="gameCanvas"></canvas>
 
-        <button id="pause-btn" class="ui-btn-icon">II</button>
-
-        <div id="splash-screen" class="screen active">
-            <div class="top-bar-splash">
-                <span>⭐ <span id="total-stars-display">0</span></span>
-            </div>
-            
-            <div class="logo-area">
-                <img src="zibbo_logo.png" class="main-logo-img">
-            </div>
-
-            <div class="hero-area">
-                <div class="pendulum-ufo">
-                    <img id="splash-ufo-preview" src="ufo_ship.png">
+        <div id="hud" class="hud-layer">
+            <div class="hud-glass-card">
+                <div class="hud-row top">
+                    <button id="pause-btn" class="pause-trigger">II</button>
+                    <div class="hud-item">⭐ <span id="game-score">0</span></div>
+                    <div class="hud-item ml-auto">LVL.<span id="current-lvl-display">1</span></div>
                 </div>
-            </div>
-
-            <div class="menu-buttons">
-                <button id="play-btn" class="game-btn big-btn">PLAY</button>
-                <button id="shop-btn-main" class="game-btn small-btn">SHOP</button>
-            </div>
-
-            <div class="footer-studio">
-                RAZDREEV STUDIO
+                <div class="hud-row bottom">
+                    <div id="lives-bar" class="lives-bar">
+                        </div>
+                    <div class="hud-timer">⏱️ <span id="game-timer">60</span></div>
+                </div>
             </div>
         </div>
 
-        <div id="hud" class="screen">
-            <div class="stats-top">
-                <div class="score-container">⭐ <span id="game-score">0</span></div>
-                <div class="timer-container">⏱️ <span id="game-timer">60</span></div>
-                <div class="lives-container">❤️ <span id="lives-display">1</span></div>
+        <div id="splash-screen" class="screen active">
+            <div class="top-bar-splash">⭐ <span id="total-stars-display">0</span></div>
+            <div class="logo-area"><img src="zibbo_logo.png" class="main-logo-img"></div>
+            <div class="hero-area">
+                <div class="pendulum-ufo"><img id="splash-ufo-preview" src="ufo_ship.png"></div>
             </div>
+            <div class="menu-buttons">
+                <button id="play-btn" class="game-btn">PLAY</button>
+                <button id="shop-btn-main" class="game-btn small-btn">SHOP</button>
+            </div>
+            <div class="footer-studio">RAZDREEV STUDIO</div>
         </div>
 
         <div id="shop-screen" class="screen">
-            <h2>SHOP</h2>
+            <h2 class="neon-text">SPACE SHOP</h2>
             <div class="shop-balance">Balance: ⭐ <span id="shop-balance">0</span></div>
-            
             <div class="shop-tabs">
                 <button class="tab-btn active" data-tab="lives">LIVES</button>
                 <button class="tab-btn" data-tab="ships">SHIPS</button>
             </div>
-
-            <div id="shop-content" class="shop-grid">
-                </div>
-
+            <div id="shop-content" class="shop-grid"></div>
             <button id="close-shop" class="game-btn back-btn">BACK</button>
         </div>
 
         <div id="level-screen" class="screen">
-            <h2 id="level-title">STAGE 1 DONE</h2>
+            <h2 id="level-title">STAGE DONE</h2>
             <div class="level-stats">
                 <p>Collected: ⭐ <span id="level-stars">0</span></p>
             </div>
             <div class="btn-group-col">
                 <button id="continue-btn" class="game-btn">CONTINUE</button>
                 <button id="shop-btn-level" class="game-btn small-btn">SHOP</button>
+                <button id="exit-to-menu" class="text-btn">Main Menu</button>
             </div>
         </div>
 
         <div id="game-over-screen" class="screen">
-            <div class="ad-placeholder">
-                <p>ADVERTISEMENT</p>
-            </div>
             <h2 class="crash-title">CRASHED!</h2>
             <p class="final-score-text">Score: <span id="final-score">0</span></p>
-            
-            <button id="retry-btn" class="game-btn" disabled>Wait 5s...</button>
+            <button id="retry-btn" class="game-btn" disabled>Wait...</button>
             <button id="home-btn" class="text-btn">Main Menu</button>
         </div>
     </div>
