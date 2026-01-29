@@ -1,7 +1,3 @@
-// ============================================
-// ZIBBO: Space Journey - Game Engine
-// ============================================
-
 // Инициализация Telegram WebApp
 const tg = window.Telegram?.WebApp;
 if (tg) {
@@ -9,7 +5,7 @@ if (tg) {
     tg.ready();
 }
 
-// Инициализация Adsgram
+// Инициализация Adsgram (отложенная)
 let AdController = null;
 window.addEventListener('load', () => {
     if (window.Adsgram) {
@@ -17,9 +13,7 @@ window.addEventListener('load', () => {
             blockId: "9a1dea9f8d134730875d57f334be6f6e",
             debug: true
         });
-        console.log("Adsgram initialized:", AdController);
-    } else {
-        console.warn("Adsgram SDK not loaded");
+        console.log("Adsgram initialized");
     }
 });
 
@@ -62,19 +56,18 @@ const MusicMgr = {
         this.trackIndex = Math.floor(Math.random() * this.tracks.length);
         const track = this.tracks[this.trackIndex];
         
-        // Пробуем сначала mp3, если не поддерживается - ogg
+        // Создаём аудио элемент
         const audio = new Audio();
         
         // Проверяем поддержку форматов
         const canPlayMP3 = audio.canPlayType('audio/mpeg');
-        const canPlayOGG = audio.canPlayType('audio/ogg');
         
         if (canPlayMP3 && track.mp3) {
             this.currentTrack = new Audio(track.mp3);
-            console.log("Playing MP3:", track.mp3);
-        } else if (canPlayOGG && track.ogg) {
+            console.log("Playing:", track.mp3);
+        } else if (track.ogg) {
             this.currentTrack = new Audio(track.ogg);
-            console.log("Playing OGG:", track.ogg);
+            console.log("Playing:", track.ogg);
         } else {
             console.error("No supported audio format found");
             return;
@@ -82,13 +75,6 @@ const MusicMgr = {
         
         this.currentTrack.loop = true;
         this.currentTrack.volume = 1.0;
-        
-        // Обработка ошибок
-        this.currentTrack.onerror = (e) => {
-            console.error("Audio error:", e);
-        };
-        
-        // Автоматический запуск при взаимодействии
         this.currentTrack.play().catch(err => {
             console.log("Audio waiting for user interaction:", err);
         });
@@ -492,7 +478,7 @@ const Game = {
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
         
-        // Stars
+        // Stars (параллакс)
         this.ctx.fillStyle = "white";
         this.stars.forEach(s => {
             this.ctx.globalAlpha = 0.6;
@@ -504,7 +490,8 @@ const Game = {
         
         // Entities
         this.entities.forEach(en => {
-            const img = document.getElementById(en.type === 'star' ? 'star-img' : (en.r > 30 ? 'ast-b-img' : 'ast-s-img'));
+            const imgId = en.type === 'star' ? 'star-img' : (en.r > 30 ? 'ast-b-img' : 'ast-s-img');
+            const img = document.getElementById(imgId);
             if (img && img.complete) {
                 this.ctx.drawImage(img, en.x - en.r, en.y - en.r, en.r * 2, en.r * 2);
             }
