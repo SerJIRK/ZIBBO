@@ -30,9 +30,9 @@ const SHIP_STATS = {
 const MusicMgr = {
     currentTrack: null,
     tracks: [
-       { mp3: 'track1.mp3', ogg: 'track5.ogg' },
-        { mp3: 'track2.mp3', ogg: 'track5.ogg' },
-        { mp3: 'track3.mp3', ogg: 'track5.ogg' }
+       { ogg: 'track1.ogg' },
+        { ogg: 'track2.ogg' },
+        { ogg: 'track3.ogg' }
     ],
     trackIndex: 0,
     enabled: false,
