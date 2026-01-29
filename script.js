@@ -52,22 +52,17 @@ const MusicMgr = {
         if (!this.enabled) return;
         this.stop();
         
-        // Выбираем случайный трек
         this.trackIndex = Math.floor(Math.random() * this.tracks.length);
         const track = this.tracks[this.trackIndex];
-        
-        // Создаём аудио элемент
         const audio = new Audio();
-        
-        // Проверяем поддержку форматов
         const canPlayMP3 = audio.canPlayType('audio/mpeg');
         
         if (canPlayMP3 && track.mp3) {
             this.currentTrack = new Audio(track.mp3);
-            console.log("Playing:", track.mp3);
+            console.log("Playing MP3:", track.mp3);
         } else if (track.ogg) {
             this.currentTrack = new Audio(track.ogg);
-            console.log("Playing:", track.ogg);
+            console.log("Playing OGG:", track.ogg);
         } else {
             console.error("No supported audio format found");
             return;
@@ -157,6 +152,10 @@ const Game = {
         };
         
         window.addEventListener('resize', () => this.resize());
+        
+        // 🔑 КРИТИЧЕСКИ ВАЖНО: показать сплеш-экран при старте!
+        this.showScreen('splash-screen');
+        
         this.loop(0);
     },
     
@@ -243,7 +242,6 @@ const Game = {
         if (this.state.screen !== 'playing') return;
         
         const stats = SHIP_STATS[this.storage.data.currentUfo];
-        // 50 levels progression: +2% speed, +1% density
         const speedMult = 1 + (this.state.level * 0.02);
         const densityMult = 0.01 + (this.state.level * 0.001);
         
@@ -465,17 +463,18 @@ const Game = {
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // ФОН ГАЛАКТИКИ
-        const bgImg = document.getElementById('galaxy-bg');
-        if (bgImg && bgImg.complete) {
-            this.ctx.drawImage(bgImg, 0, 0, this.canvas.width, this.canvas.height);
-        } else {
-            // Резервный градиент
-            const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-            gradient.addColorStop(0, '#0a0a2a');
-            gradient.addColorStop(1, '#00001a');
-            this.ctx.fillStyle = gradient;
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        // ✅ ФОН ГАЛАКТИКИ ТОЛЬКО В ИГРЕ (не перекрывает сплеш-экран!)
+        if (this.state.screen !== 'splash') {
+            const bgImg = document.getElementById('galaxy-bg');
+            if (bgImg && bgImg.complete) {
+                this.ctx.drawImage(bgImg, 0, 0, this.canvas.width, this.canvas.height);
+            } else {
+                const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+                gradient.addColorStop(0, '#0a0a2a');
+                gradient.addColorStop(1, '#00001a');
+                this.ctx.fillStyle = gradient;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            }
         }
         
         // Stars (параллакс)
