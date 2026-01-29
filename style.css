@@ -3,152 +3,105 @@
 :root {
     --neon: #00f2ff;
     --gold: #FFD700;
-    --glass-bg: rgba(0, 0, 0, 0.4); /* Максимальная прозрачность по ТЗ */
-    --glass-border: rgba(255, 255, 255, 0.2);
     --font: 'Fredoka One', cursive;
 }
 
 body, html {
     margin: 0; padding: 0; width: 100%; height: 100%;
     background: #000; font-family: var(--font);
-    overflow: hidden; touch-action: none; user-select: none;
-    color: white;
+    overflow: hidden; touch-action: none; user-select: none; color: white;
 }
 
-#game-container { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
-canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 0; }
+#game-container { position: relative; width: 100vw; height: 100vh; }
+canvas { display: block; width: 100%; height: 100%; position: absolute; z-index: 0; }
 
-/* === HUD (Adaptive) === */
+/* HUD - Adaptive for PC/Mobile */
 .hud-layer {
     position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
     width: 95%; z-index: 50; pointer-events: none; display: none;
 }
-.hud-layer.active { display: block; }
+.hud-layer.active { display: flex; justify-content: center; }
 
 .glass-hud {
-    background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(4px);
-    border: 1px solid var(--glass-border); border-radius: 20px;
-    padding: 8px 15px; 
-    display: flex; flex-direction: row; align-items: center; justify-content: space-between;
+    background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(5px);
+    border: 1px solid rgba(255,255,255,0.2); border-radius: 15px;
+    padding: 8px 15px; display: flex; align-items: center; justify-content: space-between; width: 100%;
 }
-
-.hud-group-left, .hud-group-right { display: flex; align-items: center; gap: 10px; }
-.hud-score { color: var(--gold); font-size: 1.2rem; margin-left: 5px; text-shadow: 0 2px 2px black; }
-.hud-info { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
-.hud-timer { color: white; font-size: 1.1rem; }
-.hud-level { font-size: 0.8rem; opacity: 0.8; }
+.hud-left, .hud-right { display: flex; align-items: center; gap: 15px; }
+.hud-score { color: var(--gold); font-size: 1.1rem; }
+.hud-timer { font-size: 1.1rem; text-shadow: 0 0 5px var(--neon); }
+.hud-level { opacity: 0.8; font-size: 0.8rem; }
 
 .glass-btn-square {
-    pointer-events: all; background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border);
-    color: white; border-radius: 12px; width: 42px; height: 42px; font-family: var(--font);
-    font-size: 1.2rem; cursor: pointer;
+    pointer-events: all; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+    color: white; border-radius: 8px; width: 38px; height: 38px; font-family: var(--font); cursor: pointer;
 }
-.glass-btn-square:active { background: rgba(255,255,255,0.3); }
 
-.lives-container { display: flex; gap: 4px; }
-.lives-container img { height: 18px; opacity: 0.3; }
+.lives-container { display: flex; gap: 3px; }
+.lives-container img { height: 16px; opacity: 0.2; }
 .lives-container img.on { opacity: 1; filter: drop-shadow(0 0 5px var(--neon)); }
 
-/* === SCREENS === */
+/* Screens - Maximum Transparency */
 .screen {
     position: absolute; inset: 0; z-index: 100;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: rgba(0, 0, 0, 0.5); /* Просвечиваем галактику */
-    backdrop-filter: blur(5px);
-    opacity: 0; visibility: hidden; transition: opacity 0.3s ease;
-    padding: 20px; box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(3px);
+    opacity: 0; visibility: hidden; transition: 0.3s; padding: 20px; box-sizing: border-box;
 }
 .screen.active { opacity: 1; visibility: visible; }
 
-/* === TYPOGRAPHY & LOGO === */
-.logo-container { margin-bottom: 20px; text-align: center; }
-.logo-img { max-width: 85%; height: auto; filter: drop-shadow(0 0 20px var(--neon)); }
+/* Logo and Titles */
+.logo-container { margin-bottom: 2vh; text-align: center; }
+.logo-img { width: 280px; max-width: 80vw; height: auto; filter: drop-shadow(0 0 15px var(--neon)); }
 .animated-logo { animation: zoom-pulse 4s ease-in-out infinite; }
 @keyframes zoom-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
-/* === BUTTONS === */
+/* Buttons - Adaptive Zoom */
 .menu-stack { 
     display: flex; flex-direction: column; align-items: center; gap: 12px; 
-    width: 100%; max-width: 320px; 
-    transition: transform 0.3s;
+    width: 100%; max-width: 300px; 
 }
-
 .main-btn {
     background: var(--gold); color: #000; border: none; border-radius: 18px;
-    padding: 14px 0; width: 100%; font-family: var(--font); font-size: 1.1rem;
+    padding: 12px 0; width: 90%; font-family: var(--font); font-size: 1rem;
     box-shadow: 0 4px 0 #b39200; cursor: pointer; text-transform: uppercase;
-    position: relative; overflow: hidden;
 }
 .main-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #b39200; }
-.secondary-style { background: #fff; color: #333; box-shadow: 0 4px 0 #999; }
-.secondary-style:active { box-shadow: 0 2px 0 #999; }
-.shop-yellow-btn { background: #ffcc00; }
-.back-btn { margin-top: 15px; width: 50%; font-size: 0.9rem; padding: 10px 0; }
 
-/* === SHOP STYLES === */
-.shop-list {
-    display: flex; flex-direction: column; gap: 12px;
-    width: 100%; max-width: 380px; max-height: 55vh; overflow-y: auto;
-    padding-right: 5px;
-}
+/* Shop UI */
+.shop-list { width: 100%; max-width: 380px; max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 .shop-item {
     display: flex; align-items: center; justify-content: space-between;
-    background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.1);
     border-radius: 15px; padding: 10px 15px;
 }
-/* Размеры иконок по ТЗ */
-.shop-icon-life { height: 25px; width: auto; opacity: 0.9; }
-.shop-icon-ufo { height: 55px; width: auto; filter: drop-shadow(0 0 8px var(--neon)); }
-
-.shop-info { display: flex; align-items: center; gap: 15px; flex: 1; text-align: left; }
-.shop-desc { display: flex; flex-direction: column; }
-.shop-title { font-size: 1rem; color: var(--gold); }
-.shop-sub { font-size: 0.7rem; color: #ccc; }
+.shop-info { display: flex; align-items: center; gap: 12px; }
+.shop-icon-life { height: 25px; width: auto; }
+.shop-icon-ufo { height: 60px; width: auto; filter: drop-shadow(0 0 8px var(--neon)); }
+.shop-title { color: var(--gold); font-size: 0.9rem; }
+.shop-sub { font-size: 0.7rem; color: #bbb; }
 .shop-buy-btn {
-    background: var(--gold); border: none; border-radius: 10px;
-    padding: 8px 12px; font-family: var(--font); font-size: 0.9rem; min-width: 75px;
-    box-shadow: 0 3px 0 #b39200; cursor: pointer;
-}
-.shop-buy-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #b39200; }
-
-/* === MISC === */
-.total-balance { 
-    position: absolute; top: 15px; right: 20px; 
-    font-size: 1.3rem; color: var(--gold); 
-    text-shadow: 0 2px 5px black; z-index: 110; 
+    background: var(--gold); border: none; border-radius: 10px; padding: 8px 12px;
+    font-family: var(--font); font-size: 0.85rem; min-width: 75px;
 }
 
+/* Studio Tag with Neon */
 .studio-tag { 
-    position: absolute; bottom: 15px; font-size: 0.8rem; letter-spacing: 3px;
-    color: #fff; text-shadow: 0 0 10px var(--neon), 0 0 20px var(--neon);
-    opacity: 0.9;
+    position: absolute; bottom: 20px; font-size: 0.7rem; letter-spacing: 2px;
+    color: #fff; text-shadow: 0 0 8px var(--neon), 0 0 15px var(--neon);
 }
 
-.shake { animation: shake 0.3s ease-in-out; }
-@keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
+.total-balance { position: absolute; top: 20px; right: 20px; font-size: 1.2rem; color: var(--gold); }
 
-.ad-banner-mock {
-    width: 280px; height: 150px; margin: 0 auto;
-    background: #000; border: 2px solid var(--gold); border-radius: 15px;
-    display: flex; align-items: center; justify-content: center;
-}
 .loader-spinner {
-    width: 30px; height: 30px; border: 4px solid #fff; 
-    border-top: 4px solid var(--gold); border-radius: 50%;
-    animation: spin 1s linear infinite;
+    width: 30px; height: 30px; border: 4px solid rgba(255,255,255,0.2); border-top: 4px solid var(--gold);
+    border-radius: 50%; animation: spin 1s linear infinite; margin: 10px auto;
 }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-/* === MEDIA QUERIES (PC & Landscape) === */
-/* Если экран низкий или горизонтальный, уменьшаем масштаб меню */
-@media (max-height: 700px) {
+/* PC & Landscape Fix */
+@media (max-height: 600px), (orientation: landscape) {
     .menu-stack { gap: 8px; transform: scale(0.85); }
-    .logo-img { max-height: 120px; }
-    .studio-tag { bottom: 5px; font-size: 0.6rem; }
-}
-
-@media (orientation: landscape) {
-    .glass-hud { width: 90%; max-width: 600px; padding: 5px 20px; }
-    .logo-img { max-height: 100px; margin-bottom: 5px; }
-    .shop-list { max-height: 65vh; }
+    .logo-container { margin-bottom: 1vh; }
+    .studio-tag { bottom: 10px; }
 }
