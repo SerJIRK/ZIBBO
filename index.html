@@ -27,14 +27,16 @@
 
         <div id="hud" class="hud-layer">
             <div class="glass-hud">
-                <div class="hud-line">
+                <div class="hud-group-left">
                     <button id="pause-btn" class="glass-btn-square">II</button>
                     <div class="hud-score">⭐ <span id="game-score">0</span></div>
-                    <div class="hud-level">LVL.<span id="current-lvl-display">1</span></div>
                 </div>
-                <div class="hud-line second">
+                <div class="hud-group-right">
                     <div id="lives-bar" class="lives-container"></div>
-                    <div class="hud-timer">⏱️ <span id="game-timer">60</span></div>
+                    <div class="hud-info">
+                        <span class="hud-timer">⏱️ <span id="game-timer">60</span></span>
+                        <span class="hud-level">LVL <span id="current-lvl-display">1</span></span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -47,45 +49,50 @@
             
             <div class="menu-stack">
                 <button id="play-btn" class="main-btn">CONTINUE</button>
-                <button id="new-game-btn" class="main-btn">NEW GAME</button>
-                <button id="music-btn" class="main-btn">MUSIC OFF</button>
+                <button id="new-game-btn" class="main-btn secondary-style">NEW GAME</button>
+                <button id="music-btn" class="main-btn secondary-style">MUSIC OFF</button>
             </div>
             <div class="studio-tag">RAZDOBREEV STUDIO</div>
         </div>
 
         <div id="confirm-screen" class="screen confirm-overlay">
-            <p style="color:white; font-size: 1.5rem; margin-bottom: 30px; text-align: center;">ARE YOU SURE?<br><span style="font-size: 1rem; opacity: 0.7;">Progress will be reset</span></p>
+            <p style="color:white; font-size: 1.5rem; margin-bottom: 30px; text-align: center; text-shadow: 0 0 10px black;">
+                ARE YOU SURE?<br><span style="font-size: 1rem; opacity: 0.8; color: var(--gold);">Progress will be reset</span>
+            </p>
             <div class="menu-stack">
-                <button id="confirm-yes" class="main-btn">YES</button>
-                <button id="confirm-no" class="main-btn">NO</button>
+                <button id="confirm-yes" class="main-btn">YES, RESET</button>
+                <button id="confirm-no" class="main-btn secondary-style">CANCEL</button>
             </div>
         </div>
 
         <div id="shop-screen" class="screen">
             <div class="total-balance">⭐ <span id="total-stars-display-shop">0</span></div>
-            <h2 class="screen-title">SPACE SHOP</h2>
-            <div id="shop-content" class="shop-list">
-                </div>
+            <h2 class="screen-title" style="text-shadow: 0 0 10px var(--neon);">SPACE SHOP</h2>
+            <div id="shop-content" class="shop-list"></div>
             <button id="close-shop" class="main-btn back-btn">BACK</button>
         </div>
 
         <div id="level-screen" class="screen">
             <h1 id="level-title">PAUSED</h1>
             
-            <div id="ad-container" style="display:none; text-align:center; margin-bottom: 20px;">
-                <p style="color:var(--gold); font-size: 1.2rem; margin-bottom: 10px;">ADVERTISING... <span id="ad-timer">5</span></p>
-                <div class="ad-banner-mock">ADSGRAM VIDEO</div>
+            <div id="ad-container" style="display:none; text-align:center; margin-bottom: 15px;">
+                <p style="color:var(--gold); font-size: 1.1rem; margin-bottom: 8px;">ADVERTISING... <span id="ad-timer">5</span></p>
+                <div class="ad-banner-mock">
+                    <div class="loader-spinner"></div>
+                </div>
             </div>
 
             <div class="level-info" id="level-info-stats">
-                <p>COLLECTED: ⭐ <span id="level-stars">0</span></p>
+                <p style="font-size: 1.2rem;">SCORE: <span id="level-stars" style="color:var(--gold);">0</span></p>
             </div>
 
             <div class="menu-stack" id="level-btns">
                 <button id="resume-btn" class="main-btn" style="display:none;">RESUME</button>
-                <button id="shop-btn-pause" class="main-btn shop-yellow-btn">SHOP</button>
                 <button id="continue-btn" class="main-btn">CONTINUE</button>
-                <button id="home-btn-menu" class="main-btn">MAIN MENU</button>
+                
+                <button id="shop-btn-pause" class="main-btn shop-yellow-btn">SHOP</button>
+                <button id="next-track-btn" class="main-btn shop-yellow-btn">NEXT TRACK 🎵</button>
+                <button id="home-btn-menu" class="main-btn secondary-style">MAIN MENU</button>
             </div>
         </div>
     </div>
