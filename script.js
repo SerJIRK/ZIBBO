@@ -212,7 +212,7 @@ const Game = {
         const stats = SHIP_STATS[this.storage.data.current];
         if (!this.state.finishAnim) {
             if (this.ufo.thrust) this.ufo.vy -= stats.thrust;
-            this.ufo.vy += 0.35; // Gravity
+            this.ufo.vy += 0.45; // Gravity
             this.ufo.vy *= stats.damping;
             this.ufo.y += this.ufo.vy;
             this.ufo.angle = this.ufo.vy * 0.05;
@@ -236,11 +236,11 @@ const Game = {
         // Спавн
         if (this.state.timeLeft > 5) {
             // Астероиды
-            if (Math.random() < 0.02 + (this.state.level * 0.005)) this.spawn('ast');
+            if (Math.random() < 0.01 + (this.state.level * 0.005)) this.spawn('ast');
         }
         
         // Звезды
-        if (Math.random() < 0.03) this.spawn('star');
+        if (Math.random() < 0.05) this.spawn('star');
         
         // Буква Z (примерно на 7-й секунде до конца)
         if (Math.abs(this.state.timeLeft - 7) < 0.01) this.spawnZ();
@@ -377,7 +377,7 @@ const Game = {
         
         // Жизни
         if (this.storage.data.livesPlus < 5) {
-            const price = (this.storage.data.livesPlus + 1) * 200;
+            const price = (this.storage.data.livesPlus + 1) * 100;
             cont.innerHTML += `<div class="shop-item">
                 <div class="shop-info"><img src="ufo_ship.png" class="shop-icon-life"><div><div class="shop-title">+1 LIFE SLOT</div></div></div>
                 <button class="shop-buy-btn" onclick="Game.buy('life', ${price})">${price} ⭐</button>
@@ -386,7 +386,7 @@ const Game = {
         // Корабли
         if (this.storage.data.current < 5) {
             const next = this.storage.data.current + 1;
-            const price = next * 300;
+            const price = next * 200;
             cont.innerHTML += `<div class="shop-item">
                 <div class="shop-info"><img src="ufo_ship${next}.png" class="shop-icon-ufo"><div><div class="shop-title">CLASS ${next}</div></div></div>
                 <button class="shop-buy-btn" onclick="Game.buy('ufo', ${price})">${price} ⭐</button>
