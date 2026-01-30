@@ -2,17 +2,6 @@
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.expand(); tg.ready(); }
 
-// Инициализация Adsgram
-let AdController = null;
-window.addEventListener('load', () => {
-    if (window.Adsgram) {
-        AdController = window.Adsgram.init({
-            blockId: "9a1dea9f8d134730875d57f334be6f6e", 
-            debug: false
-        });
-    }
-});
-
 const SHIP_STATS = {
     1: { thrust: 0.55, damping: 0.98 },
     2: { thrust: 0.65, damping: 0.97 },
@@ -42,26 +31,27 @@ const MusicMgr = {
     current: null,
     tracks: ['track1.ogg', 'track2.ogg', 'track3.ogg', 'track4.ogg'],
     index: 0,
+    updateButtons() {
+        const txt = this.enabled ? "NEXT TRACK" : "MUSIC OFF";
+        document.getElementById('btn-music-toggle').innerText = this.enabled ? "MUSIC OFF" : "MUSIC ON";
+        const modalBtn = document.getElementById('next-track-modal');
+        if (modalBtn) modalBtn.innerText = txt;
+    },
     toggle() {
         this.enabled = !this.enabled;
         SoundMgr.enabled = this.enabled;
-        const btn = document.getElementById('btn-music-toggle');
-        if (this.enabled) {
-            this.playRandom();
-            btn.innerText = "MUSIC OFF";
-        } else {
-            this.stop();
-            btn.innerText = "MUSIC ON";
-        }
-        SoundMgr.play('click');
+        if (this.enabled) this.playNext();
+        else this.stop();
+        this.updateButtons();
     },
-    playRandom() {
-        if (!this.enabled) return;
+    playNext() {
+        if (!this.enabled) { this.toggle(); return; }
         this.stop();
-        this.index = Math.floor(Math.random() * this.tracks.length);
+        this.index = (this.index + 1) % this.tracks.length;
         this.current = new Audio(this.tracks[this.index]);
         this.current.loop = true;
         this.current.play().catch(() => {});
+        this.updateButtons();
     },
     stop() {
         if (this.current) { this.current.pause(); this.current = null; }
@@ -72,13 +62,8 @@ const MusicMgr = {
 const Game = {
     state: {
         screen: 'splash',
-        level: 1,
-        stars: 0,
-        timeLeft: 60,
-        lives: 1,
-        invul: 0,
-        lastTime: 0,
-        finishAnim: false // Для финального рывка
+        level: 1, stars: 0, timeLeft: 60,
+        lives: 1, invul: 0, lastTime: 0, finishAnim: false
     },
     ufo: { x: 80, y: 0, vy: 0, thrust: false, angle: 0, exitX: 0 },
     entities: [],
@@ -92,13 +77,11 @@ const Game = {
         this.resize();
         this.createStarfield();
 
-        // Bindings
         window.addEventListener('resize', () => this.resize());
         
-        // Input
         const inputStart = (e) => {
             if (this.state.screen === 'playing') this.ufo.thrust = true;
-            if (this.state.screen === 'waiting') this.state.screen = 'playing';
+            if (this.state.screen === 'waiting') { this.state.screen = 'playing'; MusicMgr.setVol(1); }
             if (e.type === 'touchstart') e.preventDefault();
         };
         const inputEnd = () => { this.ufo.thrust = false; };
@@ -108,49 +91,42 @@ const Game = {
         window.addEventListener('mouseup', inputEnd);
         window.addEventListener('touchend', inputEnd);
 
-        // Buttons
+        // Bind Buttons
         document.getElementById('btn-continue').onclick = () => { SoundMgr.play('click'); this.prepareLevel(this.storage.data.level); };
         document.getElementById('btn-newgame').onclick = () => { 
             SoundMgr.play('click'); 
             if(this.storage.data.level > 1 || this.storage.data.stars > 0) {
-                document.getElementById('confirm-screen').classList.add('active');
-            } else {
-                this.prepareLevel(1);
-            }
+               if(confirm("Start new journey? Progress will be reset.")) this.storage.reset();
+            } else this.prepareLevel(1);
         };
-        document.getElementById('confirm-yes').onclick = () => this.storage.reset();
-        document.getElementById('confirm-no').onclick = () => document.getElementById('confirm-screen').classList.remove('active');
         document.getElementById('btn-music-toggle').onclick = () => MusicMgr.toggle();
-        
+        document.getElementById('next-track-modal').onclick = () => MusicMgr.playNext();
         document.getElementById('pause-btn').onclick = () => this.togglePause();
         document.getElementById('resume-btn').onclick = () => {
-            SoundMgr.play('click');
             if (this.state.screen === 'crashed') this.runAd();
             else this.resume();
         };
-        
-        document.getElementById('home-btn-menu').onclick = () => location.reload();
         document.getElementById('shop-btn-pause').onclick = () => this.openShop();
         document.getElementById('close-shop').onclick = () => this.showScreen(this.state.screen === 'paused' ? 'level-screen' : 'splash-screen');
-        
+        document.getElementById('home-btn-menu').onclick = () => location.reload();
         document.getElementById('win-next-btn').onclick = () => this.prepareLevel(this.storage.data.level);
-        document.getElementById('win-track-btn').onclick = () => MusicMgr.playRandom();
 
         this.checkContinueBtn();
         this.loop(0);
     },
 
     storage: {
-        data: { stars: 0, unlocked: [1], current: 1, livesPlus: 0, level: 1 },
+        data: { stars: 0, unlockedUfo: 1, boughtLives: 0, level: 1 },
         load() {
-            const s = localStorage.getItem('zibbo_save');
+            const s = localStorage.getItem('zibbo_save_v3');
             if (s) this.data = JSON.parse(s);
-        },
-        save() { 
-            localStorage.setItem('zibbo_save', JSON.stringify(this.data));
             document.getElementById('total-stars-display-shop').innerText = this.data.stars;
         },
-        reset() { localStorage.removeItem('zibbo_save'); location.reload(); }
+        save() { 
+            localStorage.setItem('zibbo_save_v3', JSON.stringify(this.data));
+            document.getElementById('total-stars-display-shop').innerText = this.data.stars;
+        },
+        reset() { localStorage.removeItem('zibbo_save_v3'); location.reload(); }
     },
 
     checkContinueBtn() {
@@ -167,7 +143,7 @@ const Game = {
     createStarfield() {
         this.bgStars = [];
         for (let i = 0; i < 80; i++) {
-            this.bgStars.push({ x: Math.random() * innerWidth, y: Math.random() * innerHeight, s: Math.random() * 2 + 1, v: Math.random() * 2 + 1 });
+            this.bgStars.push({ x: Math.random()*innerWidth, y: Math.random()*innerHeight, s: Math.random()*2+1, v: Math.random()*2+1 });
         }
     },
 
@@ -187,44 +163,60 @@ const Game = {
         this.ufo.vy = 0;
         this.ufo.exitX = 0;
         this.entities = [];
-        this.state.lives = 1 + this.storage.data.livesPlus + (this.storage.data.current - 1);
+        this.state.lives = 1 + this.storage.data.boughtLives + (this.storage.data.unlockedUfo - 1);
         this.updateLivesUI();
         document.getElementById('current-lvl-display').innerText = lvl;
         document.getElementById('game-score').innerText = "0";
         this.showScreen('hud');
-        MusicMgr.setVol(1.0);
+        MusicMgr.updateButtons();
+    },
+
+    spawnProceduralStars() {
+        const type = Math.random();
+        const startX = innerWidth + 50;
+        if (type < 0.3) { // Синусоида
+            const baseTagY = Math.random() * (innerHeight - 200) + 100;
+            for(let i=0; i<10; i++) {
+                this.entities.push({ type:'star', x: startX + i*40, y: baseTagY + Math.sin(i*0.8)*50, r:15 });
+            }
+        } else if (type < 0.6) { // Бабочка/Ромб
+            const cy = innerHeight/2;
+            for(let i=0; i<20; i++) {
+                this.entities.push({ type:'star', x: startX + Math.random()*150, y: cy + (Math.random()-0.5)*200, r:15 });
+            }
+        } else { // Кучка
+            const cy = Math.random()*innerHeight;
+            for(let i=0; i<8; i++) {
+                this.entities.push({ type:'star', x: startX + Math.random()*60, y: cy + Math.random()*60, r:15 });
+            }
+        }
     },
 
     update(dt) {
-        const isPlaying = this.state.screen === 'playing';
+        if (this.state.screen !== 'playing') {
+            this.bgStars.forEach(s => { s.x -= s.v * 0.5; if (s.x < 0) s.x = this.canvas.width; });
+            return;
+        }
+
         const isEnding = this.state.timeLeft <= 10;
-        
-        // Фон
-        let speedMult = isPlaying ? (isEnding ? 10 : 3) : 0.5;
         this.bgStars.forEach(s => {
-            s.x -= s.v * speedMult;
+            s.x -= s.v * (isEnding ? 12 : 4);
             if (s.x < 0) s.x = this.canvas.width;
         });
 
-        if (!isPlaying) return;
-
-        // Физика
-        const stats = SHIP_STATS[this.storage.data.current];
         if (!this.state.finishAnim) {
+            const stats = SHIP_STATS[this.storage.data.unlockedUfo];
             if (this.ufo.thrust) this.ufo.vy -= stats.thrust;
-            this.ufo.vy += 0.35; // Gravity
+            this.ufo.vy += 0.35;
             this.ufo.vy *= stats.damping;
             this.ufo.y += this.ufo.vy;
             this.ufo.angle = this.ufo.vy * 0.05;
-
             if (this.ufo.y < 0 || this.ufo.y > innerHeight - 40) this.onHit();
         } else {
-            // Анимация улета в конце
-            this.ufo.exitX += 20;
+            this.ufo.exitX += 25;
             if (this.ufo.exitX > innerWidth) this.win();
         }
 
-        // Таймер
         this.state.timeLeft -= dt;
         document.getElementById('game-timer').innerText = Math.max(0, Math.ceil(this.state.timeLeft));
 
@@ -233,64 +225,46 @@ const Game = {
             SoundMgr.play('level_done');
         }
 
-        // Спавн
-        if (this.state.timeLeft > 5) {
-            // Астероиды
-            if (Math.random() < 0.02 + (this.state.level * 0.005)) this.spawn('ast');
+        // Spawn logic
+        const spawnChance = isEnding ? 0.01 : (0.02 + this.state.level*0.005);
+        if (Math.random() < spawnChance && this.state.timeLeft > 5) {
+            this.entities.push({
+                type: 'ast', x: innerWidth + 50, y: Math.random() * innerHeight,
+                r: 20 + Math.random()*30, 
+                color: `hsl(${Math.random()*360}, 50%, 70%)`,
+                rot: 0, rotV: (Math.random()-0.5)*0.1
+            });
         }
-        
-        // Звезды
-        if (Math.random() < 0.03) this.spawn('star');
-        
-        // Буква Z (примерно на 7-й секунде до конца)
-        if (Math.abs(this.state.timeLeft - 7) < 0.01) this.spawnZ();
 
-        // Сущности
+        const starChance = isEnding ? 0.06 : 0.03;
+        if (Math.random() < starChance) {
+            if (isEnding) this.spawnProceduralStars();
+            else this.entities.push({ type:'star', x: innerWidth+50, y: Math.random()*innerHeight, r:15 });
+        }
+
         this.entities.forEach((en, i) => {
-            en.x -= (isEnding ? 10 : 5);
+            en.x -= (isEnding ? 12 : 6);
+            if (en.type === 'ast') en.rot += en.rotV;
+            
             const dist = Math.hypot(en.x - (this.ufo.x + 30 + this.ufo.exitX), en.y - (this.ufo.y + 20));
             if (dist < en.r + 15 && Date.now() > this.state.invul) {
                 if (en.type === 'star') {
-                    this.state.stars++;
-                    this.storage.data.stars++;
+                    this.state.stars++; this.storage.data.stars++;
                     document.getElementById('game-score').innerText = this.state.stars;
                     this.storage.save();
                     this.entities.splice(i, 1);
                     SoundMgr.play('collect');
-                } else {
-                    this.onHit();
-                }
+                } else this.onHit();
             }
         });
-        this.entities = this.entities.filter(en => en.x > -100);
-    },
-
-    spawn(type) {
-        this.entities.push({
-            type, x: innerWidth + 50, y: Math.random() * (innerHeight - 100) + 50,
-            r: type === 'star' ? 15 : 25 + Math.random() * 20
-        });
-    },
-
-    spawnZ() {
-        const startX = innerWidth + 100;
-        const startY = innerHeight / 2 - 100;
-        const points = [
-            {dx:0, dy:0}, {dx:40, dy:0}, {dx:80, dy:0},
-            {dx:80, dy:40}, {dx:40, dy:80}, {dx:0, dy:120},
-            {dx:0, dy:160}, {dx:40, dy:160}, {dx:80, dy:160}
-        ];
-        points.forEach(p => {
-            this.entities.push({ type: 'star', x: startX + p.dx, y: startY + p.dy, r: 15 });
-        });
+        this.entities = this.entities.filter(en => en.x > -200);
     },
 
     onHit() {
         this.state.lives--;
         SoundMgr.play('hit');
+        if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
         this.updateLivesUI();
-        if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-        
         if (this.state.lives <= 0) {
             this.state.screen = 'crashed';
             this.showEndScreen("CRASHED!");
@@ -304,17 +278,10 @@ const Game = {
     showEndScreen(title) {
         document.getElementById('level-title').innerText = title;
         document.getElementById('level-stars').innerText = this.state.stars;
-        
         const isWin = this.state.screen === 'win';
         document.getElementById('win-next-btn').style.display = isWin ? 'block' : 'none';
-        document.getElementById('win-track-btn').style.display = isWin ? 'block' : 'none';
-        
-        // Кнопка RESUME для рекламы при смерти
-        const resBtn = document.getElementById('resume-btn');
-        resBtn.innerText = isWin ? "MAIN MENU" : "RESUME"; 
-        if(isWin) resBtn.onclick = () => location.reload();
-        else resBtn.onclick = () => this.runAd();
-
+        document.getElementById('resume-btn').innerText = isWin ? "MAIN MENU" : "RESUME";
+        if (isWin) document.getElementById('resume-btn').onclick = () => location.reload();
         this.showScreen('level-screen');
         MusicMgr.setVol(0.3);
     },
@@ -331,8 +298,6 @@ const Game = {
     togglePause() {
         if (this.state.screen === 'playing') {
             this.state.screen = 'paused';
-            document.getElementById('resume-btn').innerText = "RESUME";
-            document.getElementById('resume-btn').onclick = () => this.resume();
             this.showEndScreen("PAUSED");
         }
     },
@@ -343,29 +308,24 @@ const Game = {
         MusicMgr.setVol(1.0);
     },
 
-    runAd() {
-        // Имитация/Вызов Adsgram
-        if (AdController) {
-            AdController.show().then(() => this.adSuccess()).catch(() => this.adSuccess());
-        } else {
-            this.adSuccess(); // Фоллбэк
-        }
-    },
-
-    adSuccess() {
-        this.state.lives = 1;
-        this.updateLivesUI();
-        this.resume();
-        this.state.invul = Date.now() + 3000;
+    async runAd() {
+        if (typeof AdMgr !== 'undefined') {
+            try {
+                await AdMgr.showRewardAd();
+                this.state.lives = 1;
+                this.updateLivesUI();
+                this.resume();
+            } catch(e) { alert("Ad not available"); }
+        } else { this.state.lives = 1; this.resume(); }
     },
 
     updateLivesUI() {
         const bar = document.getElementById('lives-bar');
         bar.innerHTML = '';
-        const max = 1 + this.storage.data.livesPlus + (this.storage.data.current - 1);
-        for(let i=1; i<=max; i++) {
+        const total = 1 + this.storage.data.boughtLives + (this.storage.data.unlockedUfo - 1);
+        for(let i=1; i<=total; i++) {
             const img = document.createElement('img');
-            img.src = `ufo_ship${this.storage.data.current > 1 ? this.storage.data.current : ''}.png`;
+            img.src = `ufo_ship${this.storage.data.unlockedUfo > 1 ? this.storage.data.unlockedUfo : ''}.png`;
             if (i <= this.state.lives) img.className = 'on';
             bar.appendChild(img);
         }
@@ -374,22 +334,23 @@ const Game = {
     openShop() {
         const cont = document.getElementById('shop-content');
         cont.innerHTML = '';
+        const data = this.storage.data;
         
         // Жизни
-        if (this.storage.data.livesPlus < 5) {
-            const price = (this.storage.data.livesPlus + 1) * 200;
+        if (data.boughtLives < 5) {
+            const prices = [150, 200, 300, 400, 500];
+            const p = prices[data.boughtLives];
             cont.innerHTML += `<div class="shop-item">
-                <div class="shop-info"><img src="ufo_ship.png" class="shop-icon-life"><div><div class="shop-title">+1 LIFE SLOT</div></div></div>
-                <button class="shop-buy-btn" onclick="Game.buy('life', ${price})">${price} ⭐</button>
+                <span>+1 LIFE SLOT</span>
+                <button class="shop-buy-btn" onclick="Game.buy('life', ${p})">${p} ⭐</button>
             </div>`;
         }
         // Корабли
-        if (this.storage.data.current < 5) {
-            const next = this.storage.data.current + 1;
-            const price = next * 300;
+        if (data.unlockedUfo < 5) {
+            const p = (data.unlockedUfo + 1) * 100; // 200, 300, 400, 500
             cont.innerHTML += `<div class="shop-item">
-                <div class="shop-info"><img src="ufo_ship${next}.png" class="shop-icon-ufo"><div><div class="shop-title">CLASS ${next}</div></div></div>
-                <button class="shop-buy-btn" onclick="Game.buy('ufo', ${price})">${price} ⭐</button>
+                <span>UFO CLASS ${data.unlockedUfo + 1}</span>
+                <button class="shop-buy-btn" onclick="Game.buy('ufo', ${p})">${p} ⭐</button>
             </div>`;
         }
         this.showScreen('shop-screen');
@@ -398,8 +359,8 @@ const Game = {
     buy(type, p) {
         if (this.storage.data.stars >= p) {
             this.storage.data.stars -= p;
-            if (type === 'life') this.storage.data.livesPlus++;
-            else this.storage.data.current++;
+            if (type === 'life') this.storage.data.boughtLives++;
+            else this.storage.data.unlockedUfo++;
             this.storage.save();
             SoundMgr.play('collect');
             this.openShop();
@@ -408,8 +369,6 @@ const Game = {
 
     draw() {
         this.ctx.clearRect(0,0,innerWidth,innerHeight);
-        
-        // Параллакс звезд
         const isEnding = this.state.timeLeft <= 10 && this.state.screen === 'playing';
         const blurVal = isEnding ? Math.min(8, (10 - this.state.timeLeft)) : 0;
         
@@ -418,28 +377,32 @@ const Game = {
         this.ctx.fillStyle = "white";
         this.bgStars.forEach(s => {
             this.ctx.beginPath();
-            if (isEnding) { // Эффект трассировки
-                this.ctx.rect(s.x, s.y, s.s * (1 + blurVal), s.s);
-            } else {
-                this.ctx.arc(s.x, s.y, s.s, 0, Math.PI*2);
-            }
+            if (isEnding) this.ctx.rect(s.x, s.y, s.s * (1 + blurVal), s.s);
+            else this.ctx.arc(s.x, s.y, s.s, 0, Math.PI*2);
             this.ctx.fill();
         });
         this.ctx.restore();
 
-        // Сущности
         this.entities.forEach(en => {
-            const img = document.getElementById(en.type === 'star' ? 'star-img' : (en.r > 35 ? 'ast-b-img' : 'ast-s-img'));
-            if (img) this.ctx.drawImage(img, en.x - en.r, en.y - en.r, en.r*2, en.r*2);
+            if (en.type === 'star') {
+                const pulse = 1 + Math.sin(Date.now()*0.01)*0.2; // ZOOM EFFECT
+                this.ctx.drawImage(document.getElementById('star-img'), en.x - en.r*pulse, en.y - en.r*pulse, en.r*2*pulse, en.r*2*pulse);
+            } else {
+                this.ctx.save();
+                this.ctx.translate(en.x, en.y);
+                this.ctx.rotate(en.rot);
+                const img = document.getElementById(en.r > 35 ? 'ast-b-img' : 'ast-s-img');
+                this.ctx.drawImage(img, -en.r, -en.r, en.r*2, en.r*2);
+                this.ctx.restore();
+            }
         });
 
-        // НЛО (GIF)
         if (this.state.screen !== 'splash') {
-            const ufoImg = document.getElementById(`ufo-${this.storage.data.current}`);
+            const ufoImg = document.getElementById(`ufo-${this.storage.data.unlockedUfo}`);
             this.ctx.save();
             this.ctx.translate(this.ufo.x + 30 + this.ufo.exitX, this.ufo.y + 20);
             this.ctx.rotate(this.ufo.angle);
-            if (Date.now() < this.state.invul) this.ctx.globalAlpha = 0.5;
+            if (Date.now() < this.state.invul) this.ctx.globalAlpha = Math.sin(Date.now()/50)*0.4+0.5;
             this.ctx.drawImage(ufoImg, -30, -20, 60, 40);
             this.ctx.restore();
         }
