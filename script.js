@@ -212,7 +212,7 @@ const Game = {
         const stats = SHIP_STATS[this.storage.data.current];
         if (!this.state.finishAnim) {
             if (this.ufo.thrust) this.ufo.vy -= stats.thrust;
-            this.ufo.vy += 0.45; // Gravity
+            this.ufo.vy += 0.25; // Gravity
             this.ufo.vy *= stats.damping;
             this.ufo.y += this.ufo.vy;
             this.ufo.angle = this.ufo.vy * 0.05;
