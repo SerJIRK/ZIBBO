@@ -32,7 +32,8 @@ const MusicMgr = {
     tracks: [
        { ogg: 'track1.ogg' },
         { ogg: 'track2.ogg' },
-        { ogg: 'track3.ogg' }
+        { ogg: 'track3.ogg' },
+        { ogg: 'track4.ogg' }
     ],
     trackIndex: 0,
     enabled: false,
