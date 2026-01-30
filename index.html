@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="style.css">
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
     <script async src="https://static.adsgram.net/sdk.js"></script>
 </head>
 <body>
@@ -22,93 +21,84 @@
             <img id="ufo-3" src="ufo_ship3.gif">
             <img id="ufo-4" src="ufo_ship4.gif">
             <img id="ufo-5" src="ufo_ship5.gif">
+            <img id="ufo-static-1" src="ufo_ship.png">
+            <img id="ufo-static-2" src="ufo_ship2.png">
+            <img id="ufo-static-3" src="ufo_ship3.png">
+            <img id="ufo-static-4" src="ufo_ship4.png">
+            <img id="ufo-static-5" src="ufo_ship5.png">
+            
             <img id="star-img" src="star_pickup.png">
             <img id="ast-s-img" src="asteroid_small.png">
             <img id="ast-b-img" src="asteroid_big.png">
-            <img id="ufo-icon-1" src="ufo_ship.png">
-            <img id="ufo-icon-2" src="ufo_ship2.png">
-            <img id="ufo-icon-3" src="ufo_ship3.png">
-            <img id="ufo-icon-4" src="ufo_ship4.png">
-            <img id="ufo-icon-5" src="ufo_ship5.png">
         </div>
 
         <div id="splash-screen" class="screen active">
-            <div class="logo-container">
-                <h1 class="game-logo">ZIBBO</h1>
-                <p class="studio-tag">BLOCKBUSTER STUDIO INC.</p>
+            <div class="splash-content">
+                <div class="logo-container">
+                    <img src="zibbo_logo.png" alt="ZIBBO" class="splash-logo">
+                </div>
+                
+                <div class="splash-btns">
+                    <button id="btn-continue" class="main-btn" style="display:none;">CONTINUE</button>
+                    <button id="btn-newgame" class="main-btn">NEW GAME</button>
+                    <button id="btn-music-toggle" class="main-btn">MUSIC ON</button>
+                </div>
             </div>
-            <div class="loader-spinner"></div>
-            <p class="loading-text">LOADING UNIVERSE...</p>
-        </div>
-        
-        <div id="confirm-screen" class="screen" style="background: rgba(0,0,0,0.85);">
-            <div class="modal-box">
-                <p>RESET PROGRESS?</p>
-                <button id="confirm-yes" class="main-btn warning-btn">YES</button>
-                <button id="confirm-no" class="main-btn">NO</button>
-            </div>
+            
+            <div class="studio-tag">{RAZDOBREEV}</div>
         </div>
 
-        <div id="menu-screen" class="screen">
-            <div class="total-balance">⭐ <span id="total-stars-display-main">0</span></div>
-            <img src="ufo_ship.png" class="logo-img animated-logo">
-            <h1 class="main-title">ZIBBO</h1>
-            
-            <div class="menu-stack">
-                <button id="play-btn" class="main-btn">PLAY</button>
-                <button id="music-btn" class="secondary-btn">MUSIC OFF</button>
-                <button id="new-game-btn" class="secondary-btn small-btn">RESET PROGRESS</button>
+        <div id="confirm-screen" class="screen">
+            <div class="modal-box">
+                <p>START NEW GAME?<br><span style="font-size:0.7em; color:#ccc;">Progress will be lost</span></p>
+                <button id="confirm-yes" class="main-btn">YES</button>
+                <button id="confirm-no" class="main-btn">NO</button>
             </div>
-            <p class="studio-tag">BLOCKBUSTER STUDIO INC.</p>
         </div>
 
         <div id="shop-screen" class="screen">
             <div class="total-balance">⭐ <span id="total-stars-display-shop">0</span></div>
             <h2 class="screen-title">SPACE SHOP</h2>
-            <div id="shop-content" class="shop-list"></div>
+            <div id="shop-content" class="shop-list">
+                </div>
             <button id="close-shop" class="main-btn back-btn">BACK</button>
         </div>
 
-        <div id="level-screen" class="screen glass-blur">
+        <div id="level-screen" class="screen">
             <h1 id="level-title">PAUSED</h1>
             
-            <div id="ad-container" style="display:none; text-align:center; margin-bottom: 20px;">
-                <p style="color:var(--gold); font-size: 1.2rem; margin-bottom: 10px;">ADVERTISING... <span id="ad-timer">5</span></p>
-                <div class="loader-spinner"></div>
-            </div>
-
             <div class="level-info" id="level-info-stats">
-                <p>COLLECTED</p>
-                <p style="font-size: 2rem;">⭐ <span id="level-stars">0</span></p>
+                <p>COLLECTED: ⭐ <span id="level-stars">0</span></p>
             </div>
 
             <div class="menu-stack" id="level-btns">
-                <button id="resume-btn" class="main-btn" style="display:none;">RESUME</button>
-                <button id="continue-btn" class="main-btn" style="display:none;">REVIVE (AD)</button>
+                <button id="resume-btn" class="main-btn">RESUME</button>
                 
-                <button id="win-next-btn" class="main-btn shop-yellow-btn" style="display:none;">CONTINUE</button>
-                <button id="win-track-btn" class="main-btn shop-yellow-btn" style="display:none;">NEXT TRACK</button>
-                <button id="shop-btn-pause" class="main-btn shop-yellow-btn">SHOP</button>
-                <button id="home-btn-menu" class="main-btn shop-yellow-btn">MAIN MENU</button>
-            </div>
-            
-            <div id="ad-overlay" style="display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.95); z-index: 200; flex-direction: column; align-items: center; justify-content: center;">
-                 <div style="color: white; font-size: 1.5rem; margin-bottom: 20px;">ADVERTISEMENT</div>
-                 <div class="loader-spinner"></div>
+                <button id="win-next-btn" class="main-btn" style="display:none;">NEXT LEVEL</button>
+                <button id="win-track-btn" class="main-btn" style="display:none;">NEXT TRACK</button>
+                
+                <button id="shop-btn-pause" class="main-btn">SHOP</button>
+                <button id="home-btn-menu" class="main-btn">MAIN MENU</button>
             </div>
         </div>
         
         <div id="hud" class="hud-layer">
             <div class="glass-hud">
                 <div class="hud-left">
-                    <div class="hud-score">⭐ <span id="game-score">0</span></div>
+                     <button id="pause-btn" class="pause-icon-btn">
+                        <div class="pause-bar"></div>
+                        <div class="pause-bar"></div>
+                     </button>
                 </div>
-                <div class="hud-right">
+                
+                <div class="hud-center">
                     <div class="lives-container" id="lives-bar"></div>
                     <div class="hud-timer"><span id="game-timer">60</span>s</div>
                     <div class="hud-level">LVL <span id="current-lvl-display">1</span></div>
-                    <button id="pause-btn" class="glass-btn-square">⏸️</button>
-                    <button id="next-track-btn" class="glass-btn-square">🎵</button>
+                </div>
+
+                <div class="hud-right">
+                    <div class="hud-score">⭐ <span id="game-score">0</span></div>
                 </div>
             </div>
         </div>
