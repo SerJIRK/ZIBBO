@@ -241,18 +241,17 @@ const Game = {
         document.getElementById('game-score').innerText = "0";
     },
 
-    // --- МОДИФИЦИРОВАННЫЙ МЕТОД: ДОБАВЛЕНЫ ПАРАМЕТРЫ ДЛЯ ТЮНИНГА ---
     spawn(type) {
         const isStar = type === 'star';
         this.entities.push({
             type: type,
             x: this.canvas.width + 100,
             y: Math.random() * (this.canvas.height - 100) + 50,
-            r: isStar ? 15 : 15 + Math.random() * 35, // Разные размеры астероидов
-            // Новое:
+            r: isStar ? 15 : 15 + Math.random() * 35,
+            // Добавлено для тюнинга:
             rotation: Math.random() * Math.PI * 2,
             rotSpeed: (Math.random() - 0.5) * 0.05,
-            hue: Math.floor(Math.random() * 360) // Случайный пастельный оттенок
+            hue: Math.floor(Math.random() * 360)
         });
     },
 
@@ -301,7 +300,7 @@ const Game = {
         this.entities.forEach((en, i) => {
             en.x -= (5 * speedMult);
             
-            // --- МОДИФИКАЦИЯ: ОБНОВЛЕНИЕ ВРАЩЕНИЯ ---
+            // Вращение астероидов
             if (en.type === 'ast') en.rotation += en.rotSpeed;
 
             // Collision
@@ -483,7 +482,6 @@ const Game = {
         }
     },
 
-    // --- МОДИФИЦИРОВАННЫЙ МЕТОД: ДОБАВЛЕНЫ ЭФФЕКТЫ ОТРИСОВКИ ---
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
@@ -500,20 +498,22 @@ const Game = {
         // Entities (Stars & Asteroids)
         this.entities.forEach(en => {
             this.ctx.save();
-            this.ctx.translate(en.x, en.y);
+            this.ctx.translate(en.x, en.y); // Переносим центр координат в объект
 
             if (en.type === 'star') {
-                // Эффект "дыхания"
+                // ДЫХАНИЕ ЗВЕЗД
                 const pulse = 1 + Math.sin(Date.now() / 250) * 0.15;
                 this.ctx.scale(pulse, pulse);
+                
                 const img = document.getElementById('star-img');
                 if (img && img.complete) {
                     this.ctx.drawImage(img, -en.r, -en.r, en.r * 2, en.r * 2);
                 }
             } else {
-                // Эффект вращения и пастельный цвет
+                // КРУЧЕНИЕ И ЦВЕТ АСТЕРОИДОВ
                 this.ctx.rotate(en.rotation);
                 this.ctx.filter = `hue-rotate(${en.hue}deg) brightness(1.1) saturate(0.8)`;
+                
                 const imgId = en.r > 30 ? 'ast-b-img' : 'ast-s-img';
                 const img = document.getElementById(imgId);
                 if (img && img.complete) {
