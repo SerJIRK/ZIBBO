@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>ZIBBO: Space Journey</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Adsgram SDK -->
+    <script async src="https://static.adsgram.net/sdk.js"></script>
+</head>
+<body>
+    <div id="game-container">
+        <!-- Canvas для игры -->
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Preload изображений -->
+        <img id="galaxy-bg" src="galaxy_bg.png" style="display:none;">
+        <img id="ufo-1" src="ufo_ship.gif" style="display:none;">
+        <img id="ufo-2" src="ufo_ship2.gif" style="display:none;">
+        <img id="ufo-3" src="ufo_ship3.gif" style="display:none;">
+        <img id="ufo-4" src="ufo_ship4.gif" style="display:none;">
+        <img id="ufo-5" src="ufo_ship5.gif" style="display:none;">
+        <img id="star-img" src="star_pickup.png" style="display:none;">
+        <img id="ast-s-img" src="asteroid_small.png" style="display:none;">
+        <img id="ast-b-img" src="asteroid_big.png" style="display:none;">
+        
+        <!-- SPLASH SCREEN -->
+        <div id="splash-screen" class="screen">
+            <div class="logo-container">
+                <img src="zibbo_logo.png" alt="ZIBBO" class="logo-img animated-logo">
+            </div>
+            <div class="menu-stack">
+                <button id="play-btn" class="main-btn">CONTINUE</button>
+                <button id="new-game-btn" class="main-btn">NEW GAME</button>
+                <button id="music-btn" class="main-btn">MUSIC OFF</button>
+            </div>
+            <div class="studio-tag">{RAZDOBREEV}</div>
+            <div class="total-balance" id="total-stars-display-main">⭐ 0</div>
+        </div>
+        
+        <!-- CONFIRM RESET SCREEN -->
+        <div id="confirm-screen" class="screen">
+            <h2>RESET PROGRESS?</h2>
+            <p>Stars will be lost</p>
+            <div class="menu-stack" style="margin-top: 20px;">
+                <button id="confirm-yes" class="main-btn">YES, RESET</button>
+                <button id="confirm-no" class="main-btn">CANCEL</button>
+            </div>
+        </div>
+        
+        <!-- SHOP SCREEN -->
+        <div id="shop-screen" class="screen">
+            <h2>SPACE SHOP</h2>
+            <div class="total-balance" id="total-stars-display-shop">⭐ 0</div>
+            <div class="shop-list" id="shop-content"></div>
+            <button id="close-shop" class="main-btn" style="margin-top: 20px; max-width: 200px;">BACK</button>
+        </div>
+        
+        <!-- LEVEL SCREEN (Win/Lose/Pause) -->
+        <div id="level-screen" class="screen">
+            <h2 id="level-title">LEVEL 1</h2>
+            <div style="font-size: 2rem; margin: 10px 0;">⭐ <span id="level-stars">0</span></div>
+            <div class="menu-stack">
+                <button id="continue-btn" class="main-btn">CONTINUE</button>
+                <button id="resume-btn" class="main-btn" style="display: none;">RESUME</button>
+                <button id="next-track-btn" class="main-btn">NEXT TRACK</button>
+                <button id="shop-btn-pause" class="main-btn">SHOP</button>
+                <button id="home-btn-menu" class="main-btn">MAIN MENU</button>
+            </div>
+            
+            <!-- AD CONTAINER -->
+            <div id="ad-container" style="display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.8); flex-direction: column; align-items: center; justify-content: center;">
+                <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; text-align: center;">
+                    <h3>ADVERTISING...</h3>
+                    <div id="ad-timer" style="font-size: 2rem; margin-top: 10px;">5</div>
+                    <div class="loader-spinner"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- HUD -->
+        <div id="hud" class="hud-layer">
+            <div class="glass-hud">
+                <div class="hud-left">
+                    <div class="hud-score">⭐ <span id="game-score">0</span></div>
+                </div>
+                <div class="hud-right">
+                    <div class="lives-container" id="lives-bar"></div>
+                    <div class="hud-timer"><span id="game-timer">60</span>s</div>
+                    <div class="hud-level">LVL <span id="current-lvl-display">1</span></div>
+                    <button id="pause-btn" class="glass-btn-square">⏸️</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
